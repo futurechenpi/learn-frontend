@@ -1,0 +1,9 @@
+@echo off
+echo 启动前端学习网站...
+echo.
+echo 正在安装依赖...
+call npm install
+echo.
+echo 启动开发服务器...
+call npm run dev
+pause
