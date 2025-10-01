@@ -12,20 +12,26 @@
         <div class="flex items-center space-x-4">
           <!-- 主题切换 -->
           <ThemeToggle />
-          
-          <!-- 用户菜单 -->
-          <div v-if="userStore.isLoggedIn" class="flex items-center space-x-2">
-            <span class="text-gray-600 dark:text-gray-300">
-              欢迎，{{ userStore.userInfo?.userName }}
-            </span>
-            <el-button type="primary" @click="goToLearn">
-              开始学习
-            </el-button>
-            <el-button @click="logout">
-              退出登录
-            </el-button>
-          </div>
-          
+
+          <!-- 用户下拉，与学习中心一致 -->
+          <template v-if="userStore.isLoggedIn">
+            <el-button type="primary" @click="goToLearn">开始学习</el-button>
+            <el-dropdown @command="handleCommand">
+              <span class="user-info">
+                <el-avatar :size="32" class="mr-2">{{ userStore.userInfo?.userName?.charAt(0) }}</el-avatar>
+                {{ userStore.userInfo?.userName }}
+                <el-icon class="ml-1"><ArrowDown /></el-icon>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="profile">个人资料</el-dropdown-item>
+                  <el-dropdown-item v-if="canSeeAdmin" command="admin">后台管理</el-dropdown-item>
+                  <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
+
           <div v-else class="flex items-center space-x-2">
             <el-button @click="goToLogin">登录</el-button>
             <el-button type="primary" @click="goToRegister">注册</el-button>
@@ -184,12 +190,14 @@
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { User, Key, Reading } from '@element-plus/icons-vue'
+import { User, Key, Reading, ArrowDown } from '@element-plus/icons-vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { checkAdmin } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
+const canSeeAdmin = ref(false)
 
 // 滚动状态
 const isScrolled = ref(false)
@@ -200,8 +208,17 @@ const handleScroll = () => {
 }
 
 // 生命周期钩子
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('scroll', handleScroll)
+  // 判断是否显示“后台管理”
+  if (userStore.isLoggedIn) {
+    try {
+      const res = await checkAdmin()
+      canSeeAdmin.value = !!res.data?.hasPermission
+    } catch {
+      canSeeAdmin.value = false
+    }
+  }
 })
 
 onUnmounted(() => {
@@ -272,6 +289,21 @@ const goToLearn = () => {
 const logout = () => {
   userStore.logout()
   ElMessage.success('已退出登录')
+}
+
+const handleCommand = (command: string) => {
+  switch (command) {
+    case 'profile':
+      router.push('/profile')
+      break
+    case 'admin':
+      router.push('/admin')
+      break
+    case 'logout':
+      logout()
+      router.push('/')
+      break
+  }
 }
 
 const getDifficultyClass = (difficulty: string) => {

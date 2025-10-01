@@ -33,6 +33,7 @@ import 'prismjs/components/prism-javascript'
 import 'prismjs/components/prism-typescript'
 import 'prismjs/components/prism-css'
 import 'prismjs/components/prism-markup'
+import 'prismjs/components/prism-markup-templating'
 import 'prismjs/components/prism-jsx'
 import 'prismjs/components/prism-tsx'
 import 'prismjs/components/prism-json'
@@ -62,14 +63,17 @@ const highlightedCode = computed(() => {
   if (!props.code) return ''
   
   try {
-    // 处理HTML语言映射
+    // 语言映射
     const languageMap: Record<string, string> = {
       'html': 'markup',
       'xml': 'markup',
-      'svg': 'markup'
+      'svg': 'markup',
+      'vue': 'markup',
+      'jsx': 'jsx',
+      'tsx': 'tsx'
     }
-    
-    const actualLanguage = languageMap[props.language] || props.language
+
+    const actualLanguage = languageMap[props.language || ''] || props.language
     const grammar = Prism.languages[actualLanguage] || Prism.languages.javascript
     
     const highlighted = Prism.highlight(

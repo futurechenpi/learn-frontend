@@ -48,6 +48,7 @@
                 language="javascript"
                 title="JavaScript 代码"
               />
+              <el-button class="mt-3" type="primary" @click="goExercise">开始练习</el-button>
             </div>
           </div>
         </div>
@@ -90,9 +91,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import CodeHighlighter from '@/components/CodeHighlighter.vue'
 
+const router = useRouter()
 const currentStep = ref(1)
 const totalSteps = ref(5)
 
@@ -356,6 +359,14 @@ const nextLesson = () => {
 
 const goToStep = (step: number) => {
   currentStep.value = step
+}
+
+const goExercise = () => {
+  router.push({ 
+    name: 'exercise-js', 
+    params: { step: currentStep.value },
+    query: { code: currentLesson.value?.codeExample || '', lang: 'javascript', title: currentLesson.value?.title || '' }
+  })
 }
 </script>
 

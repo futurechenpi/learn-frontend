@@ -83,12 +83,31 @@ const router = createRouter({
       name: 'profile',
       component: () => import('@/views/Profile.vue'),
       meta: { title: '个人资料', requiresAuth: true }
-},
-{
-  path: '/admin',
-  name: 'admin',
-  component: () => import('@/views/Admin.vue'),
-  meta: { title: '后台管理', requiresAuth: true }
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/views/Admin.vue'),
+      meta: { title: '后台管理', requiresAuth: true }
+    },
+    {
+      path: '/exercise/:course/:step',
+      name: 'exercise',
+      component: () => import('@/views/Exercise.vue'),
+      meta: { title: '实战练习', requiresAuth: true }
+    }
+    ,
+    {
+      path: '/exercise-css/:step',
+      name: 'exercise-css',
+      component: () => import('@/views/ExerciseCSS.vue'),
+      meta: { title: 'CSS 实战练习', requiresAuth: true }
+    },
+    {
+      path: '/exercise-js/:step',
+      name: 'exercise-js',
+      component: () => import('@/views/ExerciseJS.vue'),
+      meta: { title: 'JavaScript 实战练习', requiresAuth: true }
     }
   ]
 })

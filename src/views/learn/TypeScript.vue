@@ -38,6 +38,10 @@
 
           <div class="content-body">
             <div class="lesson-content" v-html="currentLesson.content"></div>
+            <div v-if="currentLesson.codeExample" class="code-example">
+              <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">代码示例</h4>
+              <CodeHighlighter :code="currentLesson.codeExample" language="typescript" title="TypeScript 代码" />
+            </div>
           </div>
         </div>
       </div>
@@ -79,8 +83,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import CodeHighlighter from '@/components/CodeHighlighter.vue'
 
+const router = useRouter()
 const currentStep = ref(1)
 const totalSteps = ref(4)
 
@@ -113,7 +120,8 @@ const lessons = [
         <li>显式类型注解：<code>let name: string = "张三"</code></li>
         <li>类型推断：<code>let age = 25</code> (自动推断为number)</li>
       </ul>
-    `
+    `,
+    codeExample: `let name: string = '张三'\nlet age: number = 25\nlet isActive: boolean = true\nlet scores: number[] = [90, 85, 78]\n\nfunction greet(person: string): string {\n  return 'Hello ' + person\n}`
   },
   {
     title: '接口和类型别名',
@@ -133,7 +141,8 @@ const lessons = [
         <li>联合类型：<code>string | number</code></li>
         <li>交叉类型：<code>Type1 & Type2</code></li>
       </ul>
-    `
+    `,
+    codeExample: `interface User {\n  readonly id: number\n  name: string\n  email?: string\n}\n\ntype Result = 'success' | 'error'\n\nconst user: User = { id: 1, name: '张三' }`
   },
   {
     title: '泛型和高级类型',
@@ -156,7 +165,8 @@ const lessons = [
         <li>Pick - 选择特定属性</li>
         <li>Omit - 排除特定属性</li>
       </ul>
-    `
+    `,
+    codeExample: `function identity<T>(arg: T): T {\n  return arg\n}\n\ninterface Box<T> { value: T }\nconst box: Box<number> = { value: 123 }\n\ntype PartialUser = Partial<{ id: number; name: string }>`
   },
   {
     title: '在Vue3中使用TypeScript',
@@ -189,7 +199,8 @@ const lessons = [
         <li>Vite TypeScript支持</li>
         <li>类型检查工具</li>
       </ul>
-    `
+    `,
+    codeExample: `// 组件 props 类型示例\ninterface Props {\n  title: string\n  count?: number\n}\n\n// 组合式 API 类型\nimport { Ref } from 'vue'\nconst count: Ref<number> = ref(0)`
   }
 ]
 
@@ -213,6 +224,15 @@ const nextLesson = () => {
 
 const goToStep = (step: number) => {
   currentStep.value = step
+}
+
+const goExercise = () => {
+  const lesson: any = currentLesson.value
+  router.push({ 
+    name: 'exercise', 
+    params: { course: 'typescript', step: currentStep.value },
+    query: { code: lesson?.codeExample || '', lang: 'typescript' }
+  })
 }
 </script>
 

@@ -43,9 +43,7 @@
               <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">
                 代码示例
               </h4>
-              <el-card class="code-card">
-                <pre><code class="vue">{{ currentLesson.codeExample }}</code></pre>
-              </el-card>
+              <CodeHighlighter :code="currentLesson.codeExample" language="vue" title="Vue 代码" />
             </div>
           </div>
         </div>
@@ -88,8 +86,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import CodeHighlighter from '@/components/CodeHighlighter.vue'
 
+const router = useRouter()
 const currentStep = ref(1)
 const totalSteps = ref(6)
 
@@ -454,6 +455,10 @@ const nextLesson = () => {
 
 const goToStep = (step: number) => {
   currentStep.value = step
+}
+
+const goExercise = () => {
+  router.push({ name: 'exercise', params: { course: 'vue3', step: currentStep.value } })
 }
 </script>
 

@@ -38,6 +38,10 @@
 
           <div class="content-body">
             <div class="lesson-content" v-html="currentLesson.content"></div>
+            <div v-if="currentLesson.codeExample" class="code-example">
+              <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">代码示例</h4>
+              <CodeHighlighter :code="currentLesson.codeExample" language="jsx" title="React 代码" />
+            </div>
           </div>
         </div>
       </div>
@@ -79,8 +83,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import CodeHighlighter from '@/components/CodeHighlighter.vue'
 
+const router = useRouter()
 const currentStep = ref(1)
 const totalSteps = ref(4)
 
@@ -113,7 +120,8 @@ const lessons = [
         <li>useContext - 上下文共享</li>
         <li>useReducer - 复杂状态管理</li>
       </ul>
-    `
+    `,
+    codeExample: `import React from 'react'\n\nfunction App() {\n  return (\n    <div>\n      <h1>Hello React</h1>\n      <p>这是一个基础组件</p>\n    </div>\n  )\n}\n\nexport default App`
   },
   {
     title: '组件和状态管理',
@@ -138,7 +146,8 @@ const lessons = [
         <li>Context - 跨层级通信</li>
         <li>状态提升 - 兄弟组件通信</li>
       </ul>
-    `
+    `,
+    codeExample: `import React, { useState } from 'react'\n\nfunction Counter() {\n  const [count, setCount] = useState(0)\n  return (\n    <div>\n      <p>计数: {count}</p>\n      <button onClick={() => setCount(count + 1)}>+1</button>\n    </div>\n  )\n}\n\nexport default Counter`
   },
   {
     title: '生命周期和副作用',
@@ -162,7 +171,8 @@ const lessons = [
         <li>清理定时器</li>
         <li>移除事件监听器</li>
       </ul>
-    `
+    `,
+    codeExample: `import React, { useEffect, useState } from 'react'\n\nfunction Timer() {\n  const [tick, setTick] = useState(0)\n  useEffect(() => {\n    const id = setInterval(() => setTick(t => t + 1), 1000)\n    return () => clearInterval(id)\n  }, [])\n  return <div>Tick: {tick}</div>\n}\n\nexport default Timer`
   },
   {
     title: '性能优化和最佳实践',
@@ -192,7 +202,8 @@ const lessons = [
         <li>Ant Design - UI组件库</li>
         <li>Next.js - 全栈框架</li>
       </ul>
-    `
+    `,
+    codeExample: `import React, { memo, useMemo } from 'react'\n\nconst List = memo(({ items }) => {\n  const total = useMemo(() => items.reduce((a,b)=>a+b, 0), [items])\n  return (\n    <ul>\n      {items.map((it, i) => <li key={i}>{it}</li>)}\n      <li>总计: {total}</li>\n    </ul>\n  )\n})\n\nexport default List`
   }
 ]
 
@@ -216,6 +227,15 @@ const nextLesson = () => {
 
 const goToStep = (step: number) => {
   currentStep.value = step
+}
+
+const goExercise = () => {
+  const lesson: any = currentLesson.value
+  router.push({ 
+    name: 'exercise', 
+    params: { course: 'react', step: currentStep.value },
+    query: { code: lesson?.codeExample || '', lang: 'jsx' }
+  })
 }
 </script>
 

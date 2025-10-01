@@ -38,6 +38,10 @@
 
           <div class="content-body">
             <div class="lesson-content" v-html="currentLesson.content"></div>
+            <div v-if="currentLesson.codeExample" class="code-example">
+              <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">代码示例</h4>
+              <CodeHighlighter :code="currentLesson.codeExample" language="html" title="Tailwind 示例" />
+            </div>
           </div>
         </div>
       </div>
@@ -79,8 +83,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import CodeHighlighter from '@/components/CodeHighlighter.vue'
 
+const router = useRouter()
 const currentStep = ref(1)
 const totalSteps = ref(4)
 
@@ -113,7 +120,11 @@ const lessons = [
         <li>尺寸：<code>w-full</code>, <code>h-screen</code></li>
         <li>布局：<code>flex</code>, <code>grid</code>, <code>block</code></li>
       </ul>
-    `
+    `,
+    codeExample: `<div class="p-4 bg-blue-100 rounded">
+  <h2 class="text-blue-600 font-bold">Hello Tailwind</h2>
+  <p class="text-gray-600 mt-2">这是一个使用 Tailwind 类的示例。</p>
+</div>`
   },
   {
     title: '布局和间距',
@@ -146,7 +157,16 @@ const lessons = [
         <li>外边距：<code>m-1</code> 到 <code>m-96</code></li>
         <li>特定方向：<code>pt-4</code>, <code>px-6</code>, <code>my-8</code></li>
       </ul>
-    `
+    `,
+    codeExample: `<div class="flex justify-between items-center p-4 bg-gray-100">
+  <div class="p-2 bg-red-300">1</div>
+  <div class="p-2 bg-green-300">2</div>
+  <div class="p-2 bg-blue-300">3</div>
+</div>
+<div class="grid grid-cols-3 gap-4 mt-4">
+  <div class="col-span-2 bg-purple-200 p-4">A</div>
+  <div class="bg-yellow-200 p-4">B</div>
+</div>`
   },
   {
     title: '响应式设计和状态',
@@ -180,7 +200,9 @@ const lessons = [
         <li><code>lg:focus:ring-2</code> - 大屏幕焦点时显示环形</li>
         <li><code>dark:sm:text-white</code> - 暗色模式小屏幕白色文字</li>
       </ul>
-    `
+    `,
+    codeExample: `<button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 md:px-6">按钮</button>
+<p class="text-gray-700 dark:sm:text-white mt-2">根据状态与断点改变样式</p>`
   },
   {
     title: '自定义和最佳实践',
@@ -220,7 +242,8 @@ const lessons = [
         <li>Next.js + TailwindCSS</li>
         <li>Nuxt.js + TailwindCSS</li>
       </ul>
-    `
+    `,
+    codeExample: `/* tailwind.css */\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n/* 组件提取 */\n.btn { @apply px-4 py-2 rounded font-medium bg-blue-500 text-white hover:bg-blue-600; }`
   }
 ]
 
@@ -244,6 +267,15 @@ const nextLesson = () => {
 
 const goToStep = (step: number) => {
   currentStep.value = step
+}
+
+const goExercise = () => {
+  const lesson: any = currentLesson.value
+  router.push({ 
+    name: 'exercise', 
+    params: { course: 'tailwindcss', step: currentStep.value },
+    query: { code: lesson?.codeExample || '', lang: 'html' }
+  })
 }
 </script>
 

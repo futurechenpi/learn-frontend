@@ -46,9 +46,8 @@
               <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">
                 代码示例
               </h4>
-              <el-card class="code-card">
-                <pre><code class="css">{{ currentLesson.codeExample }}</code></pre>
-              </el-card>
+              <CodeHighlighter :code="currentLesson.codeExample" language="css" title="CSS 代码" />
+              <el-button class="mt-3" type="primary" @click="goExercise">开始练习</el-button>
             </div>
 
             <!-- 效果预览 -->
@@ -100,8 +99,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import CodeHighlighter from '@/components/CodeHighlighter.vue'
 
+const router = useRouter()
 const currentStep = ref(1)
 const totalSteps = ref(4)
 
@@ -301,6 +303,14 @@ const nextLesson = () => {
 
 const goToStep = (step: number) => {
   currentStep.value = step
+}
+
+const goExercise = () => {
+  router.push({ 
+    name: 'exercise-css', 
+    params: { step: currentStep.value },
+    query: { code: currentLesson.value?.codeExample || '', lang: 'css', title: currentLesson.value?.title || '' }
+  })
 }
 </script>
 

@@ -63,11 +63,8 @@
                   {{ currentLesson.exercise.description }}
                 </p>
                 <div class="exercise-actions">
-                  <el-button type="primary" @click="openExercise">
+                  <el-button type="primary" @click="goExercise">
                     开始练习
-                  </el-button>
-                  <el-button @click="showHint">
-                    查看提示
                   </el-button>
                 </div>
               </div>
@@ -109,7 +106,7 @@
         </div>
       </div>
 
-      <!-- AI 助手
+    <!-- AI 助手
       <div class="ai-assistant">
         <el-card class="ai-card">
           <template #header>
@@ -128,16 +125,55 @@
           </div>
         </el-card>
       </div> -->
+    
+    <!-- 练习对话框 -->
+    <el-dialog v-model="exerciseDialogVisible" title="实践练习" width="720px">
+      <div>
+        <div class="mb-2 description">请根据本课要求完成下面的代码，点击运行校验进行验证。</div>
+        <el-input
+          v-model="exerciseCode"
+          type="textarea"
+          :rows="12"
+          placeholder="在此粘贴或编写你的代码..."
+        />
+        <div class="flex gap-2 mt-3">
+          <el-button @click="fillTemplate">一键填充模板</el-button>
+          <el-button @click="clearExercise">清空</el-button>
+          <el-button type="primary" :loading="exerciseChecking" @click="runValidation">运行校验</el-button>
+        </div>
+        <div v-if="exercisePassed !== null" class="mt-3">
+          <el-alert v-if="exercisePassed" type="success" show-icon title="校验通过" />
+          <div v-else>
+            <el-alert type="warning" show-icon title="以下条件未满足" class="mb-2" />
+            <ul class="list-disc pl-5">
+              <li v-for="(m, i) in exerciseMessages" :key="i">{{ m }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 提示对话框 -->
+    <el-dialog v-model="hintDialogVisible" title="练习提示" width="520px">
+      <ul class="list-disc pl-5">
+        <li v-for="(h, i) in hintList" :key="i">{{ h }}</li>
+      </ul>
+      <template #footer>
+        <el-button type="primary" @click="hintDialogVisible = false">我知道了</el-button>
+      </template>
+    </el-dialog>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ChatDotRound } from '@element-plus/icons-vue'
 import CodeHighlighter from '@/components/CodeHighlighter.vue'
 
+const router = useRouter()
 const currentStep = ref(1)
 const totalSteps = ref(5)
 
@@ -377,12 +413,90 @@ const goToStep = (step: number) => {
   currentStep.value = step
 }
 
-const openExercise = () => {
-  ElMessage.info('练习功能开发中...')
+// 练习与提示状态
+const exerciseDialogVisible = ref(false)
+const exerciseCode = ref('')
+const exerciseChecking = ref(false)
+const exercisePassed = ref<boolean | null>(null)
+const exerciseMessages = ref<string[]>([])
+
+const hintDialogVisible = ref(false)
+const hintList = ref<string[]>([])
+
+// 各课模板与校验规则
+const templates: Record<number, string> = {
+  1: `<!DOCTYPE html>\n<html lang="zh-CN">\n  <head>\n    <meta charset="UTF-8" />\n    <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n    <title>我的第一个网页</title>\n  </head>\n  <body>\n    <h1>欢迎来到我的网站！</h1>\n    <p>这是我的第一个HTML页面。</p>\n  </body>\n</html>`,
+  2: `<h1>主标题</h1>\n<p>这是一个<strong>重要</strong>的段落，包含<em>斜体</em>文本。</p>\n<a href="#">示例链接</a>\n<img src="example.jpg" alt="示例图片" />`,
+  3: `<ul>\n  <li>苹果</li>\n  <li>香蕉</li>\n</ul>\n<table>\n  <tr><th>姓名</th><th>年龄</th></tr>\n  <tr><td>张三</td><td>25</td></tr>\n</table>`,
+  4: `<form>\n  <label>姓名：<input type="text" required /></label>\n  <label>邮箱：<input type="email" required /></label>\n  <button type="submit">提交</button>\n</form>`,
+  5: `<header>\n  <h1>网站标题</h1>\n</header>\n<main>\n  <section>\n    <article>\n      <h2>文章标题</h2>\n      <p>文章内容...</p>\n    </article>\n  </section>\n  <aside>\n    <h3>侧栏</h3>\n  </aside>\n</main>\n<footer>页脚</footer>`
 }
 
-const showHint = () => {
-  ElMessage.info('提示功能开发中...')
+const requirements: Record<number, string[]> = {
+  1: ['包含 <!DOCTYPE html>', '包含 <html> 与 <body>', '包含一个 <h1>', '包含一个 <p>'],
+  2: ['包含一个 <h1>', '包含一个 <p>', '使用 <strong> 或 <em>', '包含 <a> 链接 或 <img> 图片'],
+  3: ['包含 <ul> 或 <ol>', '包含至少一个 <li>', '包含 <table> 且有 <tr> 与 <td>/<th>'],
+  4: ['包含 <form>', '包含 <input> 或 <textarea>', '包含提交 <button>'],
+  5: ['包含 <header> 与 <footer>', '包含 <main> 与 <section> 或 <article>']
+}
+
+const regexChecks: Record<number, RegExp[]> = {
+  1: [/<!DOCTYPE\s+html>/i, /<html[\s\S]*?<body[\s\S]*?<\/body>[\s\S]*?<\/html>/i, /<h1[\s\S]*?<\/h1>/i, /<p[\s\S]*?<\/p>/i],
+  2: [/<h1[\s\S]*?<\/h1>/i, /<p[\s\S]*?<\/p>/i, /<(strong|em)[\s\S]*?<\/(strong|em)>/i, /<(a|img)(\s|>)/i],
+  3: [/<(ul|ol)[\s\S]*?<\/(ul|ol)>/i, /<li[\s\S]*?<\/li>/i, /<table[\s\S]*?<tr[\s\S]*?<\/(td|th)>[\s\S]*?<\/tr>[\s\S]*?<\/table>/i],
+  4: [/<form[\s\S]*?<\/form>/i, /<(input|textarea)(\s|>)/i, /<button[\s\S]*?type=["']submit["'][\s\S]*?<\/button>/i],
+  5: [/<header[\s\S]*?<\/header>/i, /<footer[\s\S]*?<\/footer>/i, /<main[\s\S]*?<\/(main)>/i]
+}
+
+const goExercise = (showHintOnly = false) => {
+  const queryBase: any = showHintOnly ? { hint: '1' } : {}
+  router.push({ 
+    name: 'exercise', 
+    params: { course: 'html', step: currentStep.value }, 
+    query: { 
+      ...queryBase, 
+      code: currentLesson.value?.codeExample || '', 
+      lang: 'html', 
+      title: currentLesson.value?.title || '' 
+    } 
+  })
+}
+
+const fillTemplate = () => {
+  exerciseCode.value = templates[currentStep.value] || ''
+}
+
+const clearExercise = () => {
+  exerciseCode.value = ''
+  exercisePassed.value = null
+  exerciseMessages.value = []
+}
+
+const runValidation = async () => {
+  exerciseChecking.value = true
+  try {
+    const code = exerciseCode.value
+    const checks = regexChecks[currentStep.value] || []
+    const reqs = requirements[currentStep.value] || []
+    const messages: string[] = []
+    let ok = true
+    checks.forEach((re, idx) => {
+      const pass = re.test(code)
+      if (!pass) {
+        ok = false
+        messages.push(`未满足：${reqs[idx] || re.toString()}`)
+      }
+    })
+    exercisePassed.value = ok
+    exerciseMessages.value = messages
+    if (ok) {
+      ElMessage.success('校验通过，做得好！')
+    } else {
+      ElMessage.warning('还有条件未满足，请根据提示完善代码')
+    }
+  } finally {
+    exerciseChecking.value = false
+  }
 }
 
 const askAI = () => {

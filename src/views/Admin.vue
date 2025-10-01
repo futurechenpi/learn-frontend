@@ -12,11 +12,12 @@
           <el-menu-item index="roles">角色权限</el-menu-item>
           <el-menu-item index="users">用户管理</el-menu-item>
           <el-menu-item index="settings">系统设置</el-menu-item>
+          <el-menu-item index="agent">智能体（陈刚）</el-menu-item>
         </el-menu>
       </aside>
 
       <section class="content">
-        <div v-if="activeTab === 'stats'">
+        <div v-show="activeTab === 'stats'">
             <div class="filters">
               <el-segmented v-model="quickRange" :options="quickOptions" @change="handleQuickChange" />
               <el-date-picker
@@ -46,7 +47,7 @@
             </div>
         </div>
 
-        <div v-else-if="activeTab === 'roles'">
+        <div v-show="activeTab === 'roles'">
             <div class="role-panel">
               <el-table :data="users" style="width: 100%" v-loading="listLoading">
                 <el-table-column prop="userId" label="用户ID" width="100" />
@@ -58,7 +59,7 @@
                       {{ roleLabel(scope.row.role) }}
                     </el-tag>
                     <el-select v-else v-model="editRoleForm.role" style="width: 160px">
-                      <el-option label="无（普通用户）" :value="null" />
+                      <el-option label="普通用户" value="USER" />
                       <el-option label="管理员" value="ADMIN" />
                       <el-option label="超级管理员" value="SUPER_ADMIN" />
                     </el-select>
@@ -90,7 +91,7 @@
             </div>
         </div>
 
-        <div v-else-if="activeTab === 'users'">
+        <div v-show="activeTab === 'users'">
             <div class="user-panel">
               <div class="user-actions">
                 <el-button type="primary" @click="openAddUser">新增用户</el-button>
@@ -143,13 +144,17 @@
             </div>
           </template>
         </el-dialog>
+
+        <div v-show="activeTab === 'agent'">
+          <AdminAgent />
+        </div>
       </section>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
@@ -163,6 +168,7 @@ import {
   type UserInfo
 } from '@/api/user'
 import { useUserStore } from '@/stores/user'
+import AdminAgent from '@/components/AdminAgent.vue'
 
 const totalChartRef = ref<HTMLElement>()
 const pageChartRef = ref<HTMLElement>()
@@ -170,7 +176,7 @@ let totalChart: echarts.ECharts | null = null
 let pageChart: echarts.ECharts | null = null
 
 const active = ref('dashboard')
-const activeTab = ref<'stats' | 'roles' | 'users'>('stats')
+const activeTab = ref<'stats' | 'roles' | 'users' | 'settings' | 'agent'>('stats')
 const userStore = useUserStore()
 const filterKey = ref('home')
 const pageKeyOptions = [
@@ -344,6 +350,16 @@ watch(() => activeTab.value, (val) => {
   if (val === 'roles' || val === 'users') {
     loadUsers()
   }
+  if (val === 'stats') {
+    nextTick(() => {
+      if (!totalChart && totalChartRef.value) totalChart = echarts.init(totalChartRef.value)
+      if (!pageChart && pageChartRef.value) pageChart = echarts.init(pageChartRef.value)
+      totalChart?.resize()
+      pageChart?.resize()
+      setTimeout(() => { totalChart?.resize(); pageChart?.resize() }, 0)
+      refreshAll()
+    })
+  }
 })
 
 const handleSideSelect = (index: string) => {
@@ -397,6 +413,7 @@ const saveRole = async (row: UserInfo) => {
   // 2) 不能修改比自己高的权限
   // 3) 不能把他人设置为比自己更高的权限
   const currentRole = userStore.userInfo?.role ?? null
+  console.log(userStore)
   const currentRank = getRank(currentRole)
   const targetRank = getRank(row.role)
   const newRank = getRank(newRole)
