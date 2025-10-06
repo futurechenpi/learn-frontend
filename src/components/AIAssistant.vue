@@ -37,7 +37,7 @@
         </div>
         
         <!-- 建议选项区域 -->
-        <div v-if="suggestions.length > 0" class="suggestions-container">
+        <div v-if="showSuggestionsEnabled && suggestions.length > 0" class="suggestions-container">
           <h4 class="suggestions-title">您可能还想了解：</h4>
           <div class="suggestions-list">
             <el-tooltip
@@ -108,11 +108,20 @@ const isTyping = ref(false)
 const messages = ref<Message[]>([])
 const messagesContainer = ref<HTMLElement>()
 const suggestions = ref<string[]>([])
+const showSuggestionsEnabled = ref(true)
 let messageId = 0
 
 
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
+}
+
+function readAISettings(){
+  try{
+    const raw = localStorage.getItem('appSettings')
+    const s = raw ? JSON.parse(raw) : {}
+    showSuggestionsEnabled.value = s.ai?.showSuggestions !== false
+  }catch{ showSuggestionsEnabled.value = true }
 }
 
 const sendMessage = async (message?: string) => {
@@ -137,6 +146,7 @@ const sendMessage = async (message?: string) => {
   }))
 
   try {
+    readAISettings()
     // 调用Coze API，处理流式响应
     const result = await cozeChat(
       {
@@ -164,7 +174,7 @@ const sendMessage = async (message?: string) => {
     if (lastMessage && lastMessage.type === 'ai') {
       lastMessage.content = result.content
     }
-    suggestions.value = result.suggestions
+    suggestions.value = showSuggestionsEnabled.value ? result.suggestions : []
   } catch (error) {
     console.error("API请求失败:", error)
     ElMessage.error('AI助手暂时无法响应，请稍后再试')
@@ -204,6 +214,8 @@ const scrollToBottom = () => {
 onMounted(() => {
   // 添加欢迎消息
   addMessage('ai', '你好！我是AI学习助手，有什么问题可以随时问我！')
+  readAISettings()
+  window.addEventListener('storage', (e) => { if (e.key === 'appSettings') readAISettings() })
 })
 </script>
 

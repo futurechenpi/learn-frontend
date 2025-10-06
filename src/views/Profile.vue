@@ -25,6 +25,27 @@
         </template>
         
         <div class="user-info">
+          <!-- 头像与上传 -->
+          <div class="avatar-row">
+            <div class="avatar-box">
+              <el-avatar :size="84" :src="avatarUrl || undefined">
+                {{ userStore.userInfo?.userName?.charAt(0) || '?' }}
+              </el-avatar>
+            </div>
+            <div class="avatar-actions">
+              <el-upload
+                :show-file-list="false"
+                :http-request="onUploadAvatar"
+                :before-upload="beforeAvatarUpload"
+              >
+                <el-button type="primary" :loading="avatarUploading">
+                  {{ avatarUploading ? '上传中...' : '上传头像' }}
+                </el-button>
+              </el-upload>
+              <div class="avatar-hint">支持 JPG/PNG/GIF，≤ 2MB</div>
+            </div>
+          </div>
+
           <div class="info-item">
             <label class="info-label">用户ID</label>
             <span class="info-value">{{ userStore.userInfo?.userId || '-' }}</span>
@@ -221,7 +242,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
@@ -238,7 +259,10 @@ import {
   updateEmail as updateEmailApi,
   type ChangePasswordParams,
   type UpdateUsernameParams,
-  type UpdateEmailParams
+  type UpdateEmailParams,
+  uploadAvatar,
+  getAvatarUrl,
+  getAvatarSignedUrl
 } from '@/api/user'
 
 const router = useRouter()
@@ -253,6 +277,8 @@ const changePasswordDialogVisible = ref(false)
 const usernameLoading = ref(false)
 const emailLoading = ref(false)
 const passwordLoading = ref(false)
+const avatarUploading = ref(false)
+const avatarUrl = ref<string>('')
 
 // 表单引用
 const usernameFormRef = ref<FormInstance>()
@@ -431,6 +457,59 @@ const changePassword = async () => {
     passwordLoading.value = false
   }
 }
+
+// 头像：上传前校验
+const beforeAvatarUpload = (file: File) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isImage) ElMessage.error('请上传图片文件')
+  if (!isLt2M) ElMessage.error('图片大小不能超过 2MB')
+  return isImage && isLt2M
+}
+
+// 头像：自定义上传
+const onUploadAvatar = async (options: any) => {
+  if (!userStore.userInfo?.userId) {
+    ElMessage.error('请先登录')
+    return
+  }
+  try {
+    avatarUploading.value = true
+    const file: File = options.file
+    await uploadAvatar(userStore.userInfo.userId, file)
+    ElMessage.success('头像上传成功')
+    await fetchAvatar()
+  } catch (e) {
+    ElMessage.error('头像上传失败')
+  } finally {
+    avatarUploading.value = false
+  }
+}
+
+// 拉取头像地址（优先预签名 URL，其次 key 原样）
+const fetchAvatar = async () => {
+  if (!userStore.userInfo?.userId) return
+  try {
+    // 1) 试图获取预签名 URL（私有桶推荐）
+    const signed = await getAvatarSignedUrl(userStore.userInfo.userId)
+    console.log(signed)
+    if (signed?.data) {
+      avatarUrl.value = signed.data as unknown as string
+      return
+    }
+    // 2) 回退到获取 key：原样赋值（后端自行保证是可用 URL 或 key）
+    const res = await getAvatarUrl(userStore.userInfo.userId)
+    if (res && res.data) {
+      avatarUrl.value = res.data as unknown as string
+    }
+  } catch (e) {
+    // 静默失败
+  }
+}
+
+onMounted(() => {
+  fetchAvatar()
+})
 </script>
 
 <style scoped>
@@ -495,6 +574,33 @@ const changePassword = async () => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.avatar-box {
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.avatar-hint {
+  font-size: 12px;
+  color: #666;
 }
 
 .info-item {

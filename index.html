@@ -5,6 +5,16 @@
     <link rel="icon" href="/vite.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>前端学习网站</title>
+    <script>
+      // 在应用挂载前同步 dark 类，避免刷新后首屏错位
+      (function(){
+        try{
+          var isDark = (localStorage.getItem('theme') || '') === 'dark'
+          var html = document.documentElement
+          html.classList.toggle('dark', !!isDark)
+        }catch(e){}
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

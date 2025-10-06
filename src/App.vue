@@ -1,6 +1,8 @@
 <template>
   <div id="app" :class="themeClass">
-    <router-view />
+    <el-config-provider :locale="zhCn">
+      <router-view />
+    </el-config-provider>
   </div>
 </template>
 
@@ -8,6 +10,7 @@
 import { onMounted } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { useUserStore } from '@/stores/user'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 const themeStore = useThemeStore()
 const userStore = useUserStore()

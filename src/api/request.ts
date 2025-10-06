@@ -1,3 +1,11 @@
+/*
+ * @Author: futurechenpi 2625765150@qq.com
+ * @Date: 2025-09-30 09:52:03
+ * @LastEditors: futurechenpi 2625765150@qq.com
+ * @LastEditTime: 2025-10-07 03:38:33
+ * @FilePath: \learn-frontend\src\api\request.ts
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -37,7 +45,6 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response: AxiosResponse) => {
     const { data } = response
-    
     // 如果返回的code不是200，说明有错误
     if (data.code !== 200 && data.code !== 0) {
       ElMessage.error(data.message || '请求失败')

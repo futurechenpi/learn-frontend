@@ -18,7 +18,9 @@
             <el-button type="primary" @click="goToLearn">开始学习</el-button>
             <el-dropdown @command="handleCommand">
               <span class="user-info">
-                <el-avatar :size="32" class="mr-2">{{ userStore.userInfo?.userName?.charAt(0) }}</el-avatar>
+                <el-avatar :size="32" class="mr-2" :src="avatarUrl || undefined">
+                  {{ userStore.userInfo?.userName?.charAt(0) }}
+                </el-avatar>
                 {{ userStore.userInfo?.userName }}
                 <el-icon class="ml-1"><ArrowDown /></el-icon>
               </span>
@@ -191,13 +193,14 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import { User, Key, Reading, ArrowDown } from '@element-plus/icons-vue'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import { checkAdmin } from '@/api/user'
+import { checkAdmin, getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
 const canSeeAdmin = ref(false)
+const avatarUrl = ref<string>('')
 
 // 滚动状态
 const isScrolled = ref(false)
@@ -214,16 +217,47 @@ onMounted(async () => {
   if (userStore.isLoggedIn) {
     try {
       const res = await checkAdmin()
-      canSeeAdmin.value = !!res.data?.hasPermission
+      console.log(res)
+      canSeeAdmin.value = !!res?.data?.hasPermission
     } catch {
       canSeeAdmin.value = false
     }
+    // 拉取头部头像（优先预签名，其次直接值）
+    try {
+      const signed = await getAvatarSignedUrl(userStore.userInfo!.userId)
+      if (signed?.data) {
+        avatarUrl.value = signed.data as unknown as string
+      } else {
+        const r = await getAvatarUrl(userStore.userInfo!.userId)
+        if (r?.data) avatarUrl.value = r.data as unknown as string
+      }
+    } catch {}
   }
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
 })
+
+// 登录状态变化时刷新头像
+watch(
+  () => userStore.isLoggedIn,
+  async (logged) => {
+    if (logged && userStore.userInfo?.userId) {
+      try {
+        const signed = await getAvatarSignedUrl(userStore.userInfo.userId)
+        if (signed?.data) {
+          avatarUrl.value = signed.data as unknown as string
+          return
+        }
+        const r = await getAvatarUrl(userStore.userInfo.userId)
+        if (r?.data) avatarUrl.value = r.data as unknown as string
+      } catch {}
+    } else {
+      avatarUrl.value = ''
+    }
+  }
+)
 
 const courses = [
   {
@@ -377,6 +411,11 @@ const goToCourse = (courseName: string, index: number) => {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
 }
 
 .dark .header {

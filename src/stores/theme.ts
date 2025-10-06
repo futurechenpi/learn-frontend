@@ -34,12 +34,11 @@ export const useThemeStore = defineStore('theme', () => {
   // 更新主题
   const updateTheme = () => {
     const html = document.documentElement
-    if (isDark.value) {
-      html.classList.add('dark')
-    } else {
-      html.classList.remove('dark')
-    }
-    
+    // 清理页面内任何残留 .dark，只在 html 上维护
+    document.querySelectorAll('.dark').forEach((el) => {
+      if (el !== html) (el as HTMLElement).classList.remove('dark')
+    })
+    html.classList.toggle('dark', !!isDark.value)
     // 设置CSS变量
     html.style.setProperty('--el-color-primary', primaryColor.value)
   }

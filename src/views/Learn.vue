@@ -23,7 +23,7 @@
           
           <el-dropdown @command="handleCommand">
             <span class="user-info">
-              <el-avatar :size="32" class="mr-2">
+              <el-avatar :size="32" class="mr-2" :src="avatarUrl || undefined">
                 {{ userStore.userInfo?.userName?.charAt(0) }}
               </el-avatar>
               {{ userStore.userInfo?.userName }}
@@ -92,14 +92,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import { ArrowDown, Document, Brush, Lightning, Star, Connection, Grid, MagicStick, House } from '@element-plus/icons-vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AIAssistant from '@/components/AIAssistant.vue'
-import { checkAdmin } from '@/api/user'
+import { checkAdmin, getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
 
 const router = useRouter()
 const route = useRoute()
@@ -107,6 +107,7 @@ const userStore = useUserStore()
 
 const activeMenu = ref('html')
 const canSeeAdmin = ref(false)
+const avatarUrl = ref<string>('')
 
 // 根据当前路由设置激活的菜单项
 onMounted(async () => {
@@ -123,6 +124,15 @@ onMounted(async () => {
     } catch (e) {
       canSeeAdmin.value = false
     }
+    try {
+      const signed = await getAvatarSignedUrl(userStore.userInfo!.userId)
+      if (signed?.data) {
+        avatarUrl.value = signed.data as unknown as string
+      } else {
+        const r = await getAvatarUrl(userStore.userInfo!.userId)
+        if (r?.data) avatarUrl.value = r.data as unknown as string
+      }
+    } catch {}
   }
 })
 
@@ -150,6 +160,26 @@ const handleCommand = (command: string) => {
       break
   }
 }
+
+// 登录状态变化时刷新头像
+watch(
+  () => userStore.isLoggedIn,
+  async (logged) => {
+    if (logged && userStore.userInfo?.userId) {
+      try {
+        const signed = await getAvatarSignedUrl(userStore.userInfo.userId)
+        if (signed?.data) {
+          avatarUrl.value = signed.data as unknown as string
+          return
+        }
+        const r = await getAvatarUrl(userStore.userInfo.userId)
+        if (r?.data) avatarUrl.value = r.data as unknown as string
+      } catch {}
+    } else {
+      avatarUrl.value = ''
+    }
+  }
+)
 </script>
 
 <style scoped>

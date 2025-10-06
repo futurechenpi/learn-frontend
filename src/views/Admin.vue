@@ -2,7 +2,11 @@
   <div class="admin-page">
     <header class="admin-header">
       <h1 class="title">后台管理</h1>
-      <p class="subtitle">结构占位（内容后续完善）</p>
+      <div class="header-actions">
+        <el-button @click="goHome" class="home-btn">
+          返回首页
+        </el-button>
+      </div>
     </header>
 
     <main class="admin-main">
@@ -49,7 +53,7 @@
 
         <div v-show="activeTab === 'roles'">
             <div class="role-panel">
-              <el-table :data="users" style="width: 100%" v-loading="listLoading">
+              <el-table :data="users" style="width: 100%" v-loading="listLoading" :size="tableSize">
                 <el-table-column prop="userId" label="用户ID" width="100" />
                 <el-table-column prop="userName" label="用户名" />
                 <el-table-column prop="email" label="邮箱" />
@@ -96,7 +100,7 @@
               <div class="user-actions">
                 <el-button type="primary" @click="openAddUser">新增用户</el-button>
               </div>
-              <el-table :data="users" style="width: 100%" v-loading="listLoading">
+              <el-table :data="users" style="width: 100%" v-loading="listLoading" :size="tableSize">
                 <el-table-column prop="userId" label="用户ID" width="100" />
                 <el-table-column prop="userName" label="用户名" />
                 <el-table-column prop="email" label="邮箱" />
@@ -148,13 +152,85 @@
         <div v-show="activeTab === 'agent'">
           <AdminAgent />
         </div>
+
+        <div v-show="activeTab === 'settings'">
+          <el-card>
+            <template #header>
+              <div class="card-header">系统设置</div>
+            </template>
+            <el-form label-width="120px" class="settings-form">
+              <el-divider content-position="left">主题与品牌</el-divider>
+              <el-form-item label="主题模式">
+                <el-segmented v-model="settings.themeMode" :options="themeModeOptions" class="segmented-plain" />
+              </el-form-item>
+              <el-form-item label="主色">
+                <el-color-picker v-model="settings.primaryColor" show-alpha={false} />
+              </el-form-item>
+              <el-form-item label="站点标题">
+                <el-input v-model="settings.siteTitle" placeholder="站点标题" />
+              </el-form-item>
+
+              <el-divider content-position="left">列表与分页</el-divider>
+              <el-form-item label="默认每页条数">
+                <el-select v-model="settings.pageSizeDefault" style="width: 160px">
+                  <el-option :value="10" label="10" />
+                  <el-option :value="20" label="20" />
+                  <el-option :value="50" label="50" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="表格密度">
+                <el-radio-group v-model="settings.tableDensity">
+                  <el-radio-button label="compact">紧凑</el-radio-button>
+                  <el-radio-button label="normal">标准</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-divider content-position="left">仪表盘</el-divider>
+              <el-form-item label="自动刷新（秒）">
+                <el-select v-model="settings.dashboardRefreshSec" style="width: 160px">
+                  <el-option :value="0" label="关闭" />
+                  <el-option :value="30" label="30s" />
+                  <el-option :value="60" label="60s" />
+                </el-select>
+              </el-form-item>
+
+              <el-divider content-position="left">练习编辑器</el-divider>
+              <el-form-item label="字体大小">
+                <el-input-number v-model="settings.editor.fontSize" :min="10" :max="24" />
+              </el-form-item>
+              <el-form-item label="自动换行">
+                <el-switch v-model="settings.editor.wordWrap" />
+              </el-form-item>
+              <el-form-item label="Minimap">
+                <el-switch v-model="settings.editor.minimap" />
+              </el-form-item>
+              <el-form-item label="保存时格式化">
+                <el-switch v-model="settings.editor.formatOnSave" />
+              </el-form-item>
+
+              <el-divider content-position="left">AI 助手</el-divider>
+              <el-form-item label="显示建议">
+                <el-switch v-model="settings.ai.showSuggestions" active-color="var(--el-color-primary)" inactive-color="var(--el-border-color)" />
+              </el-form-item>
+              <el-form-item label="超时（秒）">
+                <el-input-number v-model="settings.ai.timeoutSec" :min="5" :max="60" />
+              </el-form-item>
+
+              <div class="settings-actions">
+                <el-button type="primary" @click="saveSettings">保存</el-button>
+                <el-button @click="resetSettings">恢复默认</el-button>
+              </div>
+            </el-form>
+          </el-card>
+        </div>
       </section>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, onMounted, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
@@ -168,8 +244,12 @@ import {
   type UserInfo
 } from '@/api/user'
 import { useUserStore } from '@/stores/user'
+import { useThemeStore } from '@/stores/theme'
 import AdminAgent from '@/components/AdminAgent.vue'
 
+const router = useRouter()
+
+const goHome = () => router.push('/')
 const totalChartRef = ref<HTMLElement>()
 const pageChartRef = ref<HTMLElement>()
 let totalChart: echarts.ECharts | null = null
@@ -331,6 +411,7 @@ const renderPageChart = (label: string, value: number) => {
 onMounted(() => {
   setQuickRange('today')
   refreshAll()
+  applySettingsToPages()
   // 进入角色/用户页时加载列表
   if (activeTab.value === 'roles' || activeTab.value === 'users') {
     loadUsers()
@@ -370,6 +451,8 @@ const handleSideSelect = (index: string) => {
 const users = ref<UserInfo[]>([])
 const listLoading = ref(false)
 const page = ref({ page: 1, size: 10, totalElements: 0 })
+// 表格尺寸绑定系统设置
+const tableSize = ref<'small' | ''>('')
 
 const loadUsers = async () => {
   listLoading.value = true
@@ -480,6 +563,109 @@ const submitUser = async () => {
   userDialogVisible.value = false
   loadUsers()
 }
+
+// 将系统设置应用到当前页（表格尺寸、默认分页、仪表盘刷新）
+function applySettingsToPages(){
+  try {
+    const sRaw = localStorage.getItem('appSettings')
+    const s = sRaw ? JSON.parse(sRaw) : {}
+    // 表格密度 -> Element Plus size
+    tableSize.value = s.tableDensity === 'compact' ? 'small' : ''
+    // 默认分页大小
+    if (s.pageSizeDefault && typeof s.pageSizeDefault === 'number') {
+      page.value.size = s.pageSizeDefault
+    }
+    // 仪表盘自动刷新
+    if (autoTimer) clearInterval(autoTimer)
+    if (activeTab.value === 'stats') {
+      const sec = Number(s.dashboardRefreshSec || 0)
+      if (sec > 0) {
+        autoTimer = setInterval(() => { refreshAll() }, sec * 1000)
+      }
+    }
+  } catch {}
+}
+
+let autoTimer: any = null
+watch(() => activeTab.value, () => applySettingsToPages())
+
+// ========= 系统设置 =========
+type Settings = {
+  themeMode: 'auto' | 'light' | 'dark'
+  primaryColor: string
+  siteTitle: string
+  pageSizeDefault: number
+  tableDensity: 'compact' | 'normal'
+  dashboardRefreshSec: number
+  editor: { fontSize: number; wordWrap: boolean; minimap: boolean; formatOnSave: boolean }
+  ai: { showSuggestions: boolean; timeoutSec: number }
+}
+
+const themeStore = useThemeStore()
+const SETTINGS_KEY = 'appSettings'
+const defaultSettings: Settings = {
+  themeMode: (localStorage.getItem('theme') as any) ? ((localStorage.getItem('theme') as any) as 'light'|'dark') : 'auto',
+  primaryColor: localStorage.getItem('primaryColor') || '#3b82f6',
+  siteTitle: '前端学习网站',
+  pageSizeDefault: 10,
+  tableDensity: 'normal',
+  dashboardRefreshSec: 60,
+  editor: { fontSize: 14, wordWrap: true, minimap: false, formatOnSave: true },
+  ai: { showSuggestions: true, timeoutSec: 15 }
+}
+const settings = reactive<Settings>({ ...defaultSettings, ...safeReadSettings() })
+
+const themeModeOptions = [
+  { label: '自动', value: 'auto' },
+  { label: '明亮', value: 'light' },
+  { label: '暗黑', value: 'dark' }
+]
+
+function safeReadSettings(): Partial<Settings> {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  ElMessage.success('设置已保存')
+  applySettings()
+}
+
+function resetSettings() {
+  Object.assign(settings, defaultSettings)
+  saveSettings()
+}
+
+function applySettings() {
+  // 主题模式
+  if (settings.themeMode === 'auto') {
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    ;(themeStore as any).isDark = prefersDark
+  } else {
+    ;(themeStore as any).isDark = (settings.themeMode === 'dark')
+  }
+  localStorage.setItem('theme', (themeStore as any).isDark ? 'dark' : 'light')
+  themeStore.initTheme()
+  // 主色
+  themeStore.setPrimaryColor(settings.primaryColor)
+  // 站点标题后缀
+  if (document && document.title) {
+    const parts = document.title.split(' - ')
+    document.title = `${parts[0]} - ${settings.siteTitle}`
+  }
+  // 其他设置放入 localStorage
+  localStorage.setItem('pageSizeDefault', String(settings.pageSizeDefault))
+  localStorage.setItem('tableDensity', settings.tableDensity)
+  localStorage.setItem('dashboardRefreshSec', String(settings.dashboardRefreshSec))
+  localStorage.setItem('editorSettings', JSON.stringify(settings.editor))
+  localStorage.setItem('aiSettings', JSON.stringify(settings.ai))
+}
+
+watch(() => settings.themeMode, applySettings)
+watch(() => settings.primaryColor, applySettings)
 </script>
 
 <style scoped>
@@ -504,6 +690,22 @@ const submitUser = async () => {
   margin: 0;
   opacity: 0.9;
 }
+
+.header-actions { margin-top: 8px; }
+
+.home-btn {
+  --btn-bg: rgba(255,255,255,0.18);
+  --btn-border: rgba(255,255,255,0.35);
+  --btn-text: #fff;
+  backdrop-filter: saturate(160%) blur(6px);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border: 1px solid var(--btn-border);
+  border-radius: 999px;
+}
+.home-btn:hover { --btn-bg: rgba(255,255,255,0.28); --btn-border: rgba(255,255,255,0.6); }
+.dark .home-btn { --btn-bg: rgba(0,0,0,0.18); --btn-border: rgba(255,255,255,0.28); --btn-text: #fff; }
+.dark .home-btn:hover { --btn-bg: rgba(0,0,0,0.28); --btn-border: rgba(255,255,255,0.45); }
 
 .admin-main {
   flex: 1;
@@ -539,6 +741,41 @@ const submitUser = async () => {
   border: 1px solid #eee;
   border-radius: 8px;
 }
+
+.table-pagination { margin-top: 12px; }
+.user-actions { margin-bottom: 12px; }
+
+/* 系统设置面板可见性与对比度优化 */
+:deep(.segmented-plain .el-segmented__item.is-selected) {
+  background: var(--el-color-primary);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.25) inset;
+  font-weight: 600;
+}
+:deep(.el-switch.is-checked .el-switch__core) {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.25) inset;
+}
+
+/* segmented 基础态与未选中态（明亮/暗黑分别适配） */
+:deep(.segmented-plain .el-segmented) {
+  background: var(--el-fill-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+}
+:deep(.segmented-plain .el-segmented__item) {
+  color: var(--el-text-color-regular);
+}
+
+/* 开关在开启状态下提高清晰度（旋钮描边与对比） */
+:deep(.el-switch.is-checked .el-switch__core:after) {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.35) inset;
+}
+
+/* 标签与输入可读性（避免白底白字） */
+:deep(.el-form-item__label) { color: var(--el-text-color-regular); }
+:deep(.el-input__inner), :deep(.el-select .el-input__inner) { color: var(--el-text-color-primary); }
 
 .dark .sidebar {
   background: #1f2937;
