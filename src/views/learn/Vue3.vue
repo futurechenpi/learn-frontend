@@ -85,12 +85,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import CodeHighlighter from '@/components/CodeHighlighter.vue'
+import { useUserStore } from '@/stores/user'
+import { getUserProgress, saveUserProgress } from '@/api/progress'
 
 const router = useRouter()
+const userStore = useUserStore()
 const currentStep = ref(1)
 const totalSteps = ref(6)
 
@@ -442,12 +445,14 @@ const currentLesson = computed(() => {
 const previousLesson = () => {
   if (currentStep.value > 1) {
     currentStep.value--
+    persistProgress()
   }
 }
 
 const nextLesson = () => {
   if (currentStep.value < totalSteps.value) {
     currentStep.value++
+    persistProgress()
   } else {
     ElMessage.success('恭喜！Vue3学习完成！')
   }
@@ -455,10 +460,31 @@ const nextLesson = () => {
 
 const goToStep = (step: number) => {
   currentStep.value = step
+  persistProgress()
 }
 
 const goExercise = () => {
   router.push({ name: 'exercise', params: { course: 'vue3', step: currentStep.value } })
+}
+
+onMounted(async () => {
+  try {
+    if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+      const res = await getUserProgress(userStore.userInfo.userId)
+      const s = res?.data?.vue3
+      if (typeof s === 'number' && s >= 1 && s <= totalSteps.value) {
+        currentStep.value = s
+      }
+    }
+  } catch {}
+})
+
+async function persistProgress(){
+  try {
+    if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+      await saveUserProgress({ userId: userStore.userInfo.userId, course: 'vue3', step: currentStep.value })
+    }
+  } catch {}
 }
 </script>
 

@@ -222,7 +222,7 @@ onMounted(() => {
 <style scoped>
 .ai-assistant {
   position: fixed;
-  bottom: 24px;
+  bottom: 128px;
   right: 24px;
   width: 450px;
   z-index: 1000;

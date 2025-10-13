@@ -63,9 +63,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import AIAssistant from '@/components/AIAssistant.vue'
+import { jsLessons, jsTitles } from '@/views/learn/lessons'
+import { useUserStore } from '@/stores/user'
+import { saveUserProgress } from '@/api/progress'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const step = computed(() => Number(route.params.step || 1))
 const subtitle = computed(() => String(route.query.title || '实时编辑与预览'))
 const activeTab = ref<'html' | 'js'>('html')
@@ -77,54 +81,19 @@ let htmlEditor: any
 let jsEditor: any
 const iframeRef = ref<HTMLIFrameElement>()
 
-const lessons: Record<number, { html: string; js: string; hints: string[] }> = {
-  1: {
-    html: `<button id="btn">点我</button>\n<p id="out"></p>`,
-    js: `document.getElementById('btn')?.addEventListener('click',()=>{\n  const out=document.getElementById('out');\n  if(out) out.textContent='按钮已点击';\n})`,
-    hints: ['获取按钮元素', '绑定 click 事件', '修改段落文本']
-  },
-  2: {
-    html: `<input id="name" placeholder="输入名字"/>\n<button id="hello">打招呼</button>\n<p id="msg"></p>`,
-    js: `document.getElementById('hello')?.addEventListener('click',()=>{\n  const name = (document.getElementById('name') as HTMLInputElement)?.value || '同学';\n  const msg = document.getElementById('msg');\n  if (msg) msg.textContent = '你好，' + name + '！';\n})`,
-    hints: ['读取输入框的值', '字符串拼接/模板字符串', '点击后更新页面']
-  },
-  3: {
-    html: `<ul id="list"></ul>`,
-    js: `const items=['苹果','香蕉','橙子'];\nconst ul=document.getElementById('list');\nif(ul){\n  items.forEach(t=>{ const li=document.createElement('li'); li.textContent=t; ul.appendChild(li) })\n}`,
-    hints: ['遍历数组', '创建 li 元素', 'appendChild 插入 DOM']
-  },
-  4: {
-    html: `<p id="time"></p>`,
-    js: `setInterval(()=>{\n  const el=document.getElementById('time');\n  if(el) el.textContent = new Date().toLocaleTimeString();\n},1000)`,
-    hints: ['使用 setInterval', '每秒更新时间', 'toLocaleTimeString']
-  },
-  5: {
-    html: `<button id="load">加载数据</button>\n<pre id="out"></pre>`,
-    js: `document.getElementById('load')?.addEventListener('click', async ()=>{\n  try{\n    const res = await fetch('https://api.github.com/repos/vuejs/core');\n    const data = await res.json();\n    (document.getElementById('out')||{}).textContent = JSON.stringify({stargazers:data.stargazers_count,name:data.name}, null, 2)\n  }catch(e){ console.error(e) }\n})`,
-    hints: ['fetch 发起请求', 'await/async', '在页面显示结果']
-  }
-}
-
-const maxStep = computed(() => Math.max(...Object.keys(lessons).map(n => Number(n))))
+const maxStep = computed(() => Math.max(...Object.keys(jsLessons).map(n => Number(n))))
 
 const srcdoc = computed(() => `<!DOCTYPE html><html><head><style>:root{--el-color-primary:${getPrimary()}}</style></head><body>${html.value}<script>try{${js.value}}catch(e){console.error(e)}</` + `script></body></html>`)
 function getPrimary(){
   return getComputedStyle(document.documentElement).getPropertyValue('--el-color-primary') || '#3b82f6'
 }
 
-const hints = computed(() => lessons[step.value]?.hints || [])
+const hints = computed(() => jsLessons[step.value]?.hints || [])
 
-// 标题映射，确保上一课/下一课时小标题同步
-const jsTitles: Record<number, string> = {
-  1: 'JavaScript 基础语法',
-  2: '函数和作用域',
-  3: '对象和数组',
-  4: 'DOM操作',
-  5: '异步编程'
-}
+// 使用集中式 jsTitles
 
 function loadLesson(){
-  const l = lessons[step.value] || lessons[1]
+  const l = jsLessons[step.value] || jsLessons[1]
   html.value = l.html
   // 若路由传入 code 与 lang=javascript，则覆盖 js 初值
   const q: any = route.query || {}
@@ -186,10 +155,16 @@ async function initMonaco(){
 function goBack(){ router.push('/learn/javascript') }
 function goNext(){
   const n = Math.max(1, step.value+1)
+  if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+    saveUserProgress({ userId: userStore.userInfo.userId, course: 'javascript', step: n }).catch(()=>{})
+  }
   router.push({ name:'exercise-js', params:{ step:n }, query:{ title: jsTitles[n] || '实时编辑与预览' } })
 }
 function goPrev(){
   const p = Math.max(1, step.value-1)
+  if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+    saveUserProgress({ userId: userStore.userInfo.userId, course: 'javascript', step: p }).catch(()=>{})
+  }
   router.push({ name:'exercise-js', params:{ step:p }, query:{ title: jsTitles[p] || '实时编辑与预览' } })
 }
 

@@ -91,12 +91,11 @@ const router = createRouter({
       meta: { title: '后台管理', requiresAuth: true }
     },
     {
-      path: '/exercise/:course/:step',
-      name: 'exercise',
-      component: () => import('@/views/Exercise.vue'),
-      meta: { title: '实战练习', requiresAuth: true }
-    }
-    ,
+      path: '/exercise-html/:step',
+      name: 'exercise-html',
+      component: () => import('@/views/ExerciseHTML.vue'),
+      meta: { title: 'HTML 实战练习', requiresAuth: true }
+    },
     {
       path: '/exercise-css/:step',
       name: 'exercise-css',

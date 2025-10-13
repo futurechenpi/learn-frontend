@@ -175,13 +175,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ChatDotRound } from '@element-plus/icons-vue'
 import CodeHighlighter from '@/components/CodeHighlighter.vue'
+import { useUserStore } from '@/stores/user'
+import { getUserProgress, saveUserProgress } from '@/api/progress'
 
 const router = useRouter()
+const userStore = useUserStore()
 const currentStep = ref(1)
 const totalSteps = ref(5)
 
@@ -406,12 +409,14 @@ const currentLesson = computed(() => {
 const previousLesson = () => {
   if (currentStep.value > 1) {
     currentStep.value--
+    persistProgress()
   }
 }
 
 const nextLesson = () => {
   if (currentStep.value < totalSteps.value) {
     currentStep.value++
+    persistProgress()
   } else {
     ElMessage.success('恭喜！HTML基础学习完成！')
   }
@@ -419,6 +424,7 @@ const nextLesson = () => {
 
 const goToStep = (step: number) => {
   currentStep.value = step
+  persistProgress()
 }
 
 // 练习与提示状态
@@ -459,8 +465,8 @@ const regexChecks: Record<number, RegExp[]> = {
 const goExercise = (showHintOnly = false) => {
   const queryBase: any = showHintOnly ? { hint: '1' } : {}
   router.push({ 
-    name: 'exercise', 
-    params: { course: 'html', step: currentStep.value }, 
+    name: 'exercise-html', 
+    params: { step: currentStep.value }, 
     query: { 
       ...queryBase, 
       code: currentLesson.value?.codeExample || '', 
@@ -509,6 +515,27 @@ const runValidation = async () => {
 
 const askAI = () => {
   ElMessage.info('AI问答功能开发中...')
+}
+
+// 进入页面时读取进度
+onMounted(async () => {
+  try {
+    if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+      const res = await getUserProgress(userStore.userInfo.userId)
+      const s = res?.data?.html
+      if (typeof s === 'number' && s >= 1 && s <= totalSteps.value) {
+        currentStep.value = s
+      }
+    }
+  } catch {}
+})
+
+async function persistProgress(){
+  try {
+    if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+      await saveUserProgress({ userId: userStore.userInfo.userId, course: 'html', step: currentStep.value })
+    }
+  } catch {}
 }
 </script>
 

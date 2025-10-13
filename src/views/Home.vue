@@ -196,6 +196,7 @@ import { User, Key, Reading, ArrowDown } from '@element-plus/icons-vue'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { checkAdmin, getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
+import { getUserProgress } from '@/api/progress'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -232,6 +233,7 @@ onMounted(async () => {
         if (r?.data) avatarUrl.value = r.data as unknown as string
       }
     } catch {}
+    await fetchProgress()
   }
 })
 
@@ -253,8 +255,10 @@ watch(
         const r = await getAvatarUrl(userStore.userInfo.userId)
         if (r?.data) avatarUrl.value = r.data as unknown as string
       } catch {}
+      await fetchProgress()
     } else {
       avatarUrl.value = ''
+      progressMap.value = {}
     }
   }
 )
@@ -303,6 +307,33 @@ const courses = [
     difficulty: '初级'
   }
 ]
+
+const progressMap = ref<Record<string, number>>({})
+
+async function fetchProgress(){
+  try{
+    if (userStore.isLoggedIn && userStore.userInfo?.userId){
+      const res = await getUserProgress(userStore.userInfo.userId)
+      progressMap.value = res?.data || {}
+    } else {
+      progressMap.value = {}
+    }
+  }catch{ progressMap.value = {} }
+}
+
+const courseOrder = ['HTML','CSS','JavaScript','Vue3','React','TypeScript','TailwindCSS']
+const courseKeyMap: Record<string, string> = { HTML:'html', CSS:'css', JavaScript:'javascript', Vue3:'vue3', React:'react', TypeScript:'typescript', TailwindCSS:'tailwindcss' }
+
+const getProgress = (index: number) => {
+  const courseName = courseOrder[index]
+  const key = courseKeyMap[courseName]
+  const totals: Record<string, number> = { html:5, css:4, javascript:5, vue3:6, react:4, typescript:4, tailwindcss:4 }
+  if (!userStore.isLoggedIn && index > 2) return '0%'
+  const step = progressMap.value[key] || 0
+  const total = totals[key] || 0
+  if (!total || !step) return '0%'
+  return `${Math.min(100, Math.round((step/total)*100))}%`
+}
 
 const goToLogin = () => {
   router.push('/login')
@@ -353,15 +384,6 @@ const getDifficultyClass = (difficulty: string) => {
     default:
       return 'difficulty-beginner'
   }
-}
-
-const getProgress = (index: number) => {
-  if (!userStore.isLoggedIn && index > 2) {
-    return '0%'
-  }
-  // 模拟学习进度
-  const progress = [85, 70, 45, 20, 10, 5, 0]
-  return `${progress[index]}%`
 }
 
 const goToCourse = (courseName: string, index: number) => {

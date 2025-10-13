@@ -71,59 +71,59 @@ export async function cozeChat(
 }
 
 // 基于指定 botId 的 Coze 流式聊天（用于后台独立 Agent）
-export async function cozeChatWithBot(botId: string, params: { messages: any[] }, callback: (update: { type: string; content: string }) => void) {
-  try {
-    const { CozeAPI } = await import("@coze/api");
+// export async function cozeChatWithBot(botId: string, params: { messages: any[] }, callback: (update: { type: string; content: string }) => void) {
+//   try {
+//     const { CozeAPI } = await import("@coze/api");
 
-    const apiClient = new CozeAPI({
-      token: "pat_OIdm8eOWCwEn1GoVhqmWFDQFgzNJzRW5meEY4okxOxAGSdOri847UQsS6EIpAT1r",
-      allowPersonalAccessTokenInBrowser: true,
-      baseURL: "https://api.coze.cn",
-    });
+//     const apiClient = new CozeAPI({
+//       token: "pat_OIdm8eOWCwEn1GoVhqmWFDQFgzNJzRW5meEY4okxOxAGSdOri847UQsS6EIpAT1r",
+//       allowPersonalAccessTokenInBrowser: true,
+//       baseURL: "https://api.coze.cn",
+//     });
 
-    const res = await apiClient.chat.stream({
-      bot_id: botId,
-      user_id: "admin-agent",
-      additional_messages: params.messages || [],
-    });
+//     const res = await apiClient.chat.stream({
+//       bot_id: botId,
+//       user_id: "admin-agent",
+//       additional_messages: params.messages || [],
+//     });
 
-    let fullContent = "";
-    const suggestions: string[] = []
+//     let fullContent = "";
+//     const suggestions: string[] = []
 
-    for await (const chunk of res) {
-      if (chunk.event === "conversation.message.delta" && chunk.data) {
-        if (chunk.data.content && typeof chunk.data.content === "string") {
-          fullContent += chunk.data.content;
-          callback({ type: "content", content: fullContent });
-        }
-      } else if (chunk.event === "conversation.message.completed" && chunk.data) {
-        const msg: any = chunk.data
-        // 跟随型建议
-        if (msg.type === 'follow_up' && msg.content) {
-          suggestions.push(msg.content)
-        } else {
-          // 保底：完成时也可能携带完整内容（非建议类型）
-          let finalContent = ""
-          if (typeof msg.content === 'string') finalContent = msg.content
-          else if (Array.isArray(msg.content)) {
-            msg.content.forEach((item: any) => {
-              if (item.text) finalContent += item.text; else if (item.content) finalContent += item.content
-            })
-          }
-          if (finalContent) callback({ type: 'content', content: finalContent })
-        }
-      } else if (chunk.event === "done") {
-        // no-op
-      } else if (chunk.event === "error") {
-        console.error("Coze API流式响应错误:", chunk);
-        const msg = (chunk as any)?.data?.msg || '未知错误'
-        throw new Error(`Coze API错误: ${msg}`);
-      }
-    }
+//     for await (const chunk of res) {
+//       if (chunk.event === "conversation.message.delta" && chunk.data) {
+//         if (chunk.data.content && typeof chunk.data.content === "string") {
+//           fullContent += chunk.data.content;
+//           callback({ type: "content", content: fullContent });
+//         }
+//       } else if (chunk.event === "conversation.message.completed" && chunk.data) {
+//         const msg: any = chunk.data
+//         // 跟随型建议
+//         if (msg.type === 'follow_up' && msg.content) {
+//           suggestions.push(msg.content)
+//         } else {
+//           // 保底：完成时也可能携带完整内容（非建议类型）
+//           let finalContent = ""
+//           if (typeof msg.content === 'string') finalContent = msg.content
+//           else if (Array.isArray(msg.content)) {
+//             msg.content.forEach((item: any) => {
+//               if (item.text) finalContent += item.text; else if (item.content) finalContent += item.content
+//             })
+//           }
+//           if (finalContent) callback({ type: 'content', content: finalContent })
+//         }
+//       } else if (chunk.event === "done") {
+//         // no-op
+//       } else if (chunk.event === "error") {
+//         console.error("Coze API流式响应错误:", chunk);
+//         const msg = (chunk as any)?.data?.msg || '未知错误'
+//         throw new Error(`Coze API错误: ${msg}`);
+//       }
+//     }
 
-    return { content: fullContent, suggestions };
-  } catch (error) {
-    console.error("Coze API请求失败:", error);
-    throw error;
-  }
-}
+//     return { content: fullContent, suggestions };
+//   } catch (error) {
+//     console.error("Coze API请求失败:", error);
+//     throw error;
+//   }
+// }

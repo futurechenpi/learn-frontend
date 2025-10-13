@@ -98,12 +98,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import CodeHighlighter from '@/components/CodeHighlighter.vue'
+import { useUserStore } from '@/stores/user'
+import { getUserProgress, saveUserProgress } from '@/api/progress'
 
 const router = useRouter()
+const userStore = useUserStore()
 const currentStep = ref(1)
 const totalSteps = ref(4)
 
@@ -290,12 +293,14 @@ const currentLesson = computed(() => {
 const previousLesson = () => {
   if (currentStep.value > 1) {
     currentStep.value--
+    persistProgress()
   }
 }
 
 const nextLesson = () => {
   if (currentStep.value < totalSteps.value) {
     currentStep.value++
+    persistProgress()
   } else {
     ElMessage.success('恭喜！CSS基础学习完成！')
   }
@@ -303,6 +308,7 @@ const nextLesson = () => {
 
 const goToStep = (step: number) => {
   currentStep.value = step
+  persistProgress()
 }
 
 const goExercise = () => {
@@ -311,6 +317,26 @@ const goExercise = () => {
     params: { step: currentStep.value },
     query: { code: currentLesson.value?.codeExample || '', lang: 'css', title: currentLesson.value?.title || '' }
   })
+}
+
+onMounted(async () => {
+  try {
+    if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+      const res = await getUserProgress(userStore.userInfo.userId)
+      const s = res?.data?.css
+      if (typeof s === 'number' && s >= 1 && s <= totalSteps.value) {
+        currentStep.value = s
+      }
+    }
+  } catch {}
+})
+
+async function persistProgress(){
+  try {
+    if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+      await saveUserProgress({ userId: userStore.userInfo.userId, course: 'css', step: currentStep.value })
+    }
+  } catch {}
 }
 </script>
 

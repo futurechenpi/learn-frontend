@@ -41,6 +41,9 @@
       </section>
 
       <aside class="sidebar">
+        <div class="assistant">
+          <AIAssistant />
+        </div>
         <div class="hints">
           <div class="hints-header">
             <h3>练习提示</h3>
@@ -49,9 +52,6 @@
           <ul v-show="showHints" class="list">
             <li v-for="(h, i) in hints" :key="i">{{ h }}</li>
           </ul>
-        </div>
-        <div class="assistant">
-          <AIAssistant />
         </div>
       </aside>
     </main>
@@ -63,9 +63,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import AIAssistant from '@/components/AIAssistant.vue'
+import { cssLessons, cssTitles } from '@/views/learn/lessons'
+import { useUserStore } from '@/stores/user'
+import { saveUserProgress } from '@/api/progress'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const step = computed(() => Number(route.params.step || 1))
 const subtitle = computed(() => String(route.query.title || '实时编辑与预览'))
 const activeTab = ref<'html' | 'css'>('html')
@@ -77,53 +81,19 @@ let htmlEditor: any
 let cssEditor: any
 const iframeRef = ref<HTMLIFrameElement>()
 
-const lessons: Record<number, { html: string; css: string; hints: string[] }> = {
-  1: {
-    html: `<div class="card">卡片</div>`,
-    css: `.card{padding:16px;border:1px solid #ccc;border-radius:8px;background:#f8fafc}`,
-    hints: ['编写一个类选择器 .card', '为其添加 padding 与边框', '设置圆角与背景色']
-  },
-  2: {
-    html: `<div class="grid">
-  <div class="item">1</div>
-  <div class="item">2</div>
-  <div class="item">3</div>
-</div>`,
-    css: `.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.item{background:#e5e7eb;padding:10px;text-align:center}`,
-    hints: ['使用 display:grid', '设置 repeat(3,1fr)', '使用 gap 控制间距']
-  },
-  3: {
-    html: `<nav class="nav"><a>首页</a><a>课程</a><a>联系</a></nav>`,
-    css: `.nav{display:flex;gap:12px;background:#111827;color:#fff;padding:8px;border-radius:6px}.nav a{color:inherit;text-decoration:none}`,
-    hints: ['使用 flex 水平排列', '设置 gap 间距', '让链接继承颜色']
-  },
-  4: {
-    html: `<button class="btn">按钮</button>`,
-    css: `.btn{padding:8px 12px;border:1px solid var(--el-border-color);background:var(--el-fill-color);border-radius:6px}
-.btn:hover{background:var(--el-fill-color-darker)}`,
-    hints: ['使用 Element Plus 变量', '添加 :hover 态']
-  }
-}
-
-const maxStep = computed(() => Math.max(...Object.keys(lessons).map(n => Number(n))))
+const maxStep = computed(() => Math.max(...Object.keys(cssLessons).map(n => Number(n))))
 
 const srcdoc = computed(() => `<!DOCTYPE html><html><head><style>${css.value}\n:root{--el-color-primary:${getPrimary()}}</style></head><body>${html.value}</body></html>`)
 function getPrimary(){
   return getComputedStyle(document.documentElement).getPropertyValue('--el-color-primary') || '#3b82f6'
 }
 
-const hints = computed(() => lessons[step.value]?.hints || [])
+const hints = computed(() => cssLessons[step.value]?.hints || [])
 
 // 标题映射，确保上一课/下一课时小标题同步
-const cssTitles: Record<number, string> = {
-  1: 'CSS 基础语法',
-  2: '选择器详解',
-  3: '盒模型和布局',
-  4: '响应式设计'
-}
 
 function loadLesson(){
-  const l = lessons[step.value] || lessons[1]
+  const l = cssLessons[step.value] || cssLessons[1]
   html.value = l.html
   // 若路由传入 code 与 lang=css，则覆盖 css 初值
   const q: any = route.query || {}
@@ -185,10 +155,16 @@ async function initMonaco(){
 function goBack(){ router.push('/learn/css') }
 function goNext(){
   const n = Math.max(1, step.value+1)
+  if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+    saveUserProgress({ userId: userStore.userInfo.userId, course: 'css', step: n }).catch(()=>{})
+  }
   router.push({ name:'exercise-css', params:{ step:n }, query:{ title: cssTitles[n] || '实时编辑与预览' } })
 }
 function goPrev(){
   const p = Math.max(1, step.value-1)
+  if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+    saveUserProgress({ userId: userStore.userInfo.userId, course: 'css', step: p }).catch(()=>{})
+  }
   router.push({ name:'exercise-css', params:{ step:p }, query:{ title: cssTitles[p] || '实时编辑与预览' } })
 }
 
