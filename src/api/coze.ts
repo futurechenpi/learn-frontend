@@ -8,7 +8,7 @@ export async function cozeChat(
     const { CozeAPI } = await import("@coze/api");
 
     const apiClient = new CozeAPI({
-      token: "pat_OIdm8eOWCwEn1GoVhqmWFDQFgzNJzRW5meEY4okxOxAGSdOri847UQsS6EIpAT1r",
+      token: "pat_MGOK7VIpbl3opEpwpOTSfMLvgKTzhWvJI0jCPB1uRLvV7ZiOq0dh9tOwvpL1SgkE",
       allowPersonalAccessTokenInBrowser: true,
       baseURL: "https://api.coze.cn",
     });

@@ -2,7 +2,7 @@
  * @Author: futurechenpi 2625765150@qq.com
  * @Date: 2025-09-30 09:55:09
  * @LastEditors: futurechenpi 2625765150@qq.com
- * @LastEditTime: 2025-10-06 00:55:14
+ * @LastEditTime: 2026-04-01 15:32:41
  * @FilePath: \learn-frontend\src\views\learn\HTML.vue
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -73,6 +73,9 @@
                 <div class="exercise-actions">
                   <el-button type="primary" @click="goExercise">
                     开始练习
+                  </el-button>
+                  <el-button @click="goAIExercise">
+                    AI出题
                   </el-button>
                 </div>
               </div>
@@ -464,15 +467,22 @@ const regexChecks: Record<number, RegExp[]> = {
 
 const goExercise = (showHintOnly = false) => {
   const queryBase: any = showHintOnly ? { hint: '1' } : {}
-  router.push({ 
-    name: 'exercise-html', 
-    params: { step: currentStep.value }, 
-    query: { 
-      ...queryBase, 
-      code: currentLesson.value?.codeExample || '', 
-      lang: 'html', 
-      title: currentLesson.value?.title || '' 
-    } 
+  router.push({
+    name: 'exercise-html',
+    params: { step: currentStep.value },
+    query: {
+      ...queryBase,
+      code: currentLesson.value?.codeExample || '',
+      lang: 'html',
+      title: currentLesson.value?.title || ''
+    }
+  })
+}
+
+const goAIExercise = () => {
+  router.push({
+    name: 'ai-exercise',
+    params: { course: 'HTML' }
   })
 }
 

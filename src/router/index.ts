@@ -75,6 +75,12 @@ const router = createRouter({
           name: 'learn-tailwindcss',
           component: () => import('@/views/learn/TailwindCSS.vue'),
           meta: { title: 'TailwindCSS学习' }
+        },
+        {
+          path: 'ai-exercise/:course',
+          name: 'ai-exercise',
+          component: () => import('@/views/learn/AIExercise.vue'),
+          meta: { title: 'AI出题练习' }
         }
       ]
     },

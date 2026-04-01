@@ -47,7 +47,10 @@
                 代码示例
               </h4>
               <CodeHighlighter :code="currentLesson.codeExample" language="css" title="CSS 代码" />
-              <el-button class="mt-3" type="primary" @click="goExercise">开始练习</el-button>
+              <div class="mt-3 flex gap-2">
+                <el-button type="primary" @click="goExercise">开始练习</el-button>
+                <el-button @click="goAIExercise">AI出题</el-button>
+              </div>
             </div>
 
             <!-- 效果预览 -->
@@ -312,10 +315,17 @@ const goToStep = (step: number) => {
 }
 
 const goExercise = () => {
-  router.push({ 
-    name: 'exercise-css', 
+  router.push({
+    name: 'exercise-css',
     params: { step: currentStep.value },
     query: { code: currentLesson.value?.codeExample || '', lang: 'css', title: currentLesson.value?.title || '' }
+  })
+}
+
+const goAIExercise = () => {
+  router.push({
+    name: 'ai-exercise',
+    params: { course: 'CSS' }
   })
 }
 

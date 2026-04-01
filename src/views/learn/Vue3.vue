@@ -44,6 +44,10 @@
                 代码示例
               </h4>
               <CodeHighlighter :code="currentLesson.codeExample" language="vue" title="Vue 代码" />
+              <div class="mt-3 flex gap-2">
+                <el-button type="primary" @click="goExercise">开始练习</el-button>
+                <el-button @click="goAIExercise">AI出题</el-button>
+              </div>
             </div>
           </div>
         </div>
@@ -465,6 +469,13 @@ const goToStep = (step: number) => {
 
 const goExercise = () => {
   router.push({ name: 'exercise', params: { course: 'vue3', step: currentStep.value } })
+}
+
+const goAIExercise = () => {
+  router.push({
+    name: 'ai-exercise',
+    params: { course: 'Vue3' }
+  })
 }
 
 onMounted(async () => {

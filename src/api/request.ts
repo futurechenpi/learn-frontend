@@ -9,6 +9,7 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import router from '@/router'
 
 // 创建axios实例
 const service: AxiosInstance = axios.create({
@@ -47,6 +48,14 @@ service.interceptors.response.use(
     const { data } = response
     // 如果返回的code不是200，说明有错误
     if (data.code !== 200 && data.code !== 0) {
+      // 令牌失效类业务码（按后端约定可补充 40101/40100 等）
+      if (data.code === 401 || data.code === 40101) {
+        const userStore = useUserStore()
+        userStore.logout()
+        ElMessage.error(data.message || '登录已过期，请重新登录')
+        router.push('/login')
+        return Promise.reject(new Error('Unauthorized'))
+      }
       ElMessage.error(data.message || '请求失败')
       return Promise.reject(new Error(data.message || '请求失败'))
     }
@@ -64,6 +73,7 @@ service.interceptors.response.use(
           ElMessage.error('登录已过期，请重新登录')
           const userStore = useUserStore()
           userStore.logout()
+          router.push('/login')
           break
         case 403:
           ElMessage.error('没有权限访问')

@@ -41,6 +41,10 @@
             <div v-if="currentLesson.codeExample" class="code-example">
               <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">代码示例</h4>
               <CodeHighlighter :code="currentLesson.codeExample" language="typescript" title="TypeScript 代码" />
+              <div class="mt-3 flex gap-2">
+                <el-button type="primary" @click="goExercise">开始练习</el-button>
+                <el-button @click="goAIExercise">AI出题</el-button>
+              </div>
             </div>
           </div>
         </div>
@@ -234,10 +238,17 @@ const goToStep = (step: number) => {
 
 const goExercise = () => {
   const lesson: any = currentLesson.value
-  router.push({ 
-    name: 'exercise', 
+  router.push({
+    name: 'exercise',
     params: { course: 'typescript', step: currentStep.value },
     query: { code: lesson?.codeExample || '', lang: 'typescript' }
+  })
+}
+
+const goAIExercise = () => {
+  router.push({
+    name: 'ai-exercise',
+    params: { course: 'TypeScript' }
   })
 }
 

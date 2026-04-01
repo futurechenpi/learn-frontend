@@ -44,142 +44,88 @@
 
     <!-- 主要内容 -->
     <main class="main-content">
-      <div class="container mx-auto px-4 py-8">
+      <div class="container mx-auto px-4 py-16">
         <!-- 欢迎区域 -->
-        <section class="welcome-section text-center py-20">
-          <div class="hero-content">
-            <div class="hero-badge">
-              <span class="badge-text">🚀 全新升级</span>
-            </div>
-            <h2 class="text-5xl font-bold text-white mb-6 leading-tight">
-              欢迎来到
-              <span class="gradient-text">前端学习网站</span>
-            </h2>
-            <p class="text-xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed">
-              从零开始学习前端技术，掌握HTML、CSS、JavaScript、Vue3、React、TypeScript和TailwindCSS
-              <br>让编程学习变得简单有趣
-            </p>
-            
-            <div v-if="!userStore.isLoggedIn" class="hero-actions">
-              <el-button type="primary" size="large" @click="goToRegister" class="hero-btn primary">
-                <el-icon><User /></el-icon>
-                立即注册
-              </el-button>
-              <el-button size="large" @click="goToLogin" class="hero-btn secondary">
-                <el-icon><Key /></el-icon>
-                已有账号？登录
-              </el-button>
-            </div>
-            
-            <div v-else class="hero-actions">
-              <el-button type="primary" size="large" @click="goToLearn" class="hero-btn primary">
-                <el-icon><Reading /></el-icon>
-                开始学习之旅
-              </el-button>
-            </div>
+        <section class="welcome-section text-center py-12">
+          <h2 class="text-4xl font-bold text-gray-800 dark:text-white mb-4">
+            前端学习网站
+          </h2>
+          <p class="text-lg text-gray-600 dark:text-white/80 mb-8 max-w-2xl mx-auto">
+            系统化学习前端技术，从基础到进阶
+          </p>
+
+          <div v-if="!userStore.isLoggedIn" class="hero-actions">
+            <el-button type="primary" size="large" @click="goToRegister">
+              立即开始
+            </el-button>
+            <el-button size="large" @click="goToLogin">
+              登录
+            </el-button>
           </div>
-          
-          <!-- 装饰性元素 -->
-          <div class="hero-decoration">
-            <div class="floating-element element-1">💻</div>
-            <div class="floating-element element-2">🎨</div>
-            <div class="floating-element element-3">⚡</div>
-            <div class="floating-element element-4">🚀</div>
+
+          <div v-else class="hero-actions">
+            <el-button type="primary" size="large" @click="goToLearn">
+              继续学习
+            </el-button>
           </div>
         </section>
 
         <!-- 学习路径 -->
-        <section class="learning-path py-20">
-          <div class="learning-path-container">
-            <div class="section-header">
-              <h3 class="text-4xl font-bold text-center text-gray-800 dark:text-gray-200 mb-4">
-                学习路径
-              </h3>
-              <p class="text-lg text-center text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
-                系统化的学习体系，从基础到进阶，助你成为前端开发专家
-              </p>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              <div 
-                v-for="(course, index) in courses" 
-                :key="course.name"
-                class="course-card group"
-                :class="{ 'locked': !userStore.isLoggedIn && index > 2 }"
-                @click="goToCourse(course.name, index)"
-              >
-                <div class="card-inner">
-                  <div class="card-header">
-                    <div class="course-icon">{{ course.icon }}</div>
-                    <div class="difficulty-badge" :class="getDifficultyClass(course.difficulty)">
-                      {{ course.difficulty }}
-                    </div>
-                  </div>
-                  <div class="card-content">
-                    <h4 class="course-title">{{ course.name }}</h4>
-                    <p class="course-description">{{ course.description }}</p>
-                  </div>
-                  <div class="card-footer">
-                    <div class="progress-indicator">
-                      <div class="progress-bar" :style="{ width: getProgress(index) }"></div>
-                    </div>
-                    <span class="progress-text">{{ getProgress(index) }}</span>
-                  </div>
+        <section class="learning-path py-16">
+          <h3 class="text-3xl font-bold text-center text-gray-800 dark:text-white mb-12">
+            课程列表
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div
+              v-for="(course, index) in courses"
+              :key="course.name"
+              class="course-card"
+              :class="{ 'locked': !userStore.isLoggedIn && index > 2 }"
+              @click="goToCourse(course.name, index)"
+            >
+              <div class="course-icon">{{ course.icon }}</div>
+              <h4 class="course-title">{{ course.name }}</h4>
+              <p class="course-description">{{ course.description }}</p>
+              <div class="card-footer">
+                <div class="progress-indicator">
+                  <div class="progress-bar" :style="{ width: getProgress(index) }"></div>
                 </div>
+                <span class="progress-text">{{ getProgress(index) }}</span>
               </div>
             </div>
           </div>
         </section>
 
         <!-- 特色功能 -->
-        <section class="features py-20">
-          <div class="section-header">
-            <h3 class="text-4xl font-bold text-center text-gray-800 dark:text-gray-200 mb-4">
-              特色功能
-            </h3>
-            <p class="text-lg text-center text-gray-600 dark:text-gray-400 mb-16 max-w-2xl mx-auto">
-              我们提供最优质的学习体验，让编程学习变得简单高效
-            </p>
-          </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div class="feature-item group">
-              <div class="feature-icon">
-                <div class="icon-bg">🤖</div>
-              </div>
-              <div class="feature-content">
-                <h4 class="feature-title">AI智能答疑</h4>
-                <p class="feature-description">
-                  遇到问题？AI助手随时为您解答，让学习更高效，24小时在线支持
-                </p>
-                <div class="feature-highlight">智能推荐学习路径</div>
-              </div>
+        <section class="features py-16">
+          <h3 class="text-3xl font-bold text-center text-gray-800 dark:text-white mb-12">
+            为什么选择我们
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="feature-item">
+              <div class="feature-icon">🤖</div>
+              <h4 class="feature-title">AI智能答疑</h4>
+              <p class="feature-description">
+                AI助手24小时在线，随时解答您的问题
+              </p>
             </div>
-            
-            <div class="feature-item group">
-              <div class="feature-icon">
-                <div class="icon-bg">📚</div>
-              </div>
-              <div class="feature-content">
-                <h4 class="feature-title">循序渐进</h4>
-                <p class="feature-description">
-                  从基础到进阶，系统化的学习路径，适合不同水平的学习者
-                </p>
-                <div class="feature-highlight">个性化学习计划</div>
-              </div>
+
+            <div class="feature-item">
+              <div class="feature-icon">📚</div>
+              <h4 class="feature-title">系统化课程</h4>
+              <p class="feature-description">
+                从基础到进阶，循序渐进的学习路径
+              </p>
             </div>
-            
-            <div class="feature-item group">
-              <div class="feature-icon">
-                <div class="icon-bg">🎨</div>
-              </div>
-              <div class="feature-content">
-                <h4 class="feature-title">个性化主题</h4>
-                <p class="feature-description">
-                  支持暗色模式和自定义主题，打造专属学习环境
-                </p>
-                <div class="feature-highlight">护眼模式</div>
-              </div>
+
+            <div class="feature-item">
+              <div class="feature-icon">⚡</div>
+              <h4 class="feature-title">实战练习</h4>
+              <p class="feature-description">
+                丰富的代码练习，边学边练，快速掌握技能
+              </p>
             </div>
           </div>
         </section>
@@ -416,11 +362,11 @@ const goToCourse = (courseName: string, index: number) => {
 <style scoped>
 .home {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
 .dark .home {
-  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
 .header {
@@ -438,6 +384,27 @@ const goToCourse = (courseName: string, index: number) => {
 .user-info {
   display: flex;
   align-items: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+  outline: none;
+}
+
+.user-info:hover {
+  background: #f5f5f5;
+}
+
+.dark .user-info:hover {
+  background: #404040;
+}
+
+.user-info :deep(.el-avatar) {
+  border: none !important;
+}
+
+.user-info :deep(.el-avatar:hover) {
+  border: none !important;
 }
 
 .dark .header {
@@ -594,54 +561,37 @@ const goToCourse = (courseName: string, index: number) => {
   margin-bottom: 48px;
 }
 
-/* Learning Path Container */
-.learning-path-container {
-  background: white;
-  border-radius: 24px;
-  padding: 48px 32px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  margin: 0 16px;
-}
-
-.dark .learning-path-container {
-  background: #2d3748;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
 /* Course Cards */
 .course-card {
-  position: relative;
-  background: #f8fafc;
-  border-radius: 16px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .dark .course-card {
-  background: #374151;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  border: 1px solid #4b5563;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: none;
 }
 
 .course-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
 }
 
 .dark .course-card:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  background: #4b5563;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .course-card.locked {
-  opacity: 0.6;
-  filter: grayscale(0.3);
-}
-
-.course-card.locked {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -649,32 +599,53 @@ const goToCourse = (courseName: string, index: number) => {
   transform: none;
 }
 
-.card-inner {
-  padding: 24px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
 .course-icon {
-  font-size: 3rem;
-  line-height: 1;
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  display: block;
 }
 
-.difficulty-badge {
-  padding: 4px 12px;
-  border-radius: 12px;
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.dark .card-footer {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.progress-indicator {
+  flex: 1;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dark .progress-indicator {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
   font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #6b7280;
+  min-width: 40px;
+}
+
+.dark .progress-text {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .difficulty-beginner {
@@ -723,160 +694,80 @@ const goToCourse = (courseName: string, index: number) => {
 }
 
 .course-title {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 600;
   color: #1f2937;
   margin-bottom: 8px;
 }
 
 .dark .course-title {
-  color: #f9fafb;
+  color: white;
 }
 
 .course-description {
   color: #6b7280;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
 .dark .course-description {
-  color: #d1d5db;
-}
-
-.card-footer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.progress-indicator {
-  flex: 1;
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.dark .progress-indicator {
-  background: #374151;
-}
-
-.progress-bar {
-  height: 100%;
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
-  min-width: 40px;
-}
-
-.dark .progress-text {
-  color: #9ca3af;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* Feature Items */
 .feature-item {
   text-align: center;
-  padding: 32px 24px;
-  background: white;
-  border-radius: 16px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .dark .feature-item {
-  background: #2d3748;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-.feature-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
-}
-
-.feature-item:hover::before {
-  transform: scaleX(1);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
 }
 
 .feature-item:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
 }
 
 .dark .feature-item:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .feature-icon {
-  margin-bottom: 24px;
-}
-
-.icon-bg {
-  display: inline-block;
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  margin: 0 auto;
-  transition: all 0.3s ease;
-}
-
-.feature-item:hover .icon-bg {
-  transform: scale(1.1) rotate(5deg);
-}
-
-.feature-content {
+  font-size: 2.5rem;
   margin-bottom: 16px;
+  display: block;
 }
 
 .feature-title {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 600;
   color: #1f2937;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .dark .feature-title {
-  color: #f9fafb;
+  color: white;
 }
 
 .feature-description {
   color: #6b7280;
   line-height: 1.6;
-  margin-bottom: 16px;
+  font-size: 0.875rem;
 }
 
 .dark .feature-description {
-  color: #d1d5db;
-}
-
-.feature-highlight {
-  display: inline-block;
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  color: white;
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 </style>

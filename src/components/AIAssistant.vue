@@ -1,13 +1,19 @@
 <template>
   <div class="ai-assistant">
-    <el-card class="ai-card" :class="{ 'expanded': isExpanded }">
+    <div v-if="isMinimized" class="minimize-button" @click="toggleMinimized">
+      <el-icon><ChatDotRound /></el-icon>
+    </div>
+    <el-card v-else class="ai-card" :class="{ 'expanded': isExpanded }">
       <template #header>
-        <div class="ai-header" @click="toggleExpanded">
-          <el-icon class="ai-icon"><ChatDotRound /></el-icon>
-          <span>AI 学习助手</span>
-          <el-icon class="toggle-icon" :class="{ 'rotated': isExpanded }">
-            <ArrowDown />
-          </el-icon>
+        <div class="ai-header">
+          <div class="header-left" @click="toggleExpanded">
+            <el-icon class="ai-icon"><ChatDotRound /></el-icon>
+            <span>AI 学习助手</span>
+            <el-icon class="toggle-icon" :class="{ 'rotated': isExpanded }">
+              <ArrowDown />
+            </el-icon>
+          </div>
+          <el-icon class="close-icon" @click="toggleMinimized"><Close /></el-icon>
         </div>
       </template>
       
@@ -87,7 +93,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ChatDotRound, ArrowDown } from '@element-plus/icons-vue'
+import { ChatDotRound, ArrowDown, Close } from '@element-plus/icons-vue'
 import { format } from 'date-fns'
 import MarkdownIt from 'markdown-it'
 import { cozeChat } from '@/api/coze'
@@ -103,6 +109,7 @@ interface Message {
 }
 
 const isExpanded = ref(false)
+const isMinimized = ref(false)
 const inputMessage = ref('')
 const isTyping = ref(false)
 const messages = ref<Message[]>([])
@@ -114,6 +121,10 @@ let messageId = 0
 
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
+}
+
+const toggleMinimized = () => {
+  isMinimized.value = !isMinimized.value
 }
 
 function readAISettings(){
@@ -229,6 +240,33 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
+.minimize-button {
+  position: fixed;
+  bottom: 128px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.minimize-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.minimize-button .el-icon {
+  font-size: 28px;
+  color: white;
+}
+
 .ai-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
@@ -244,11 +282,29 @@ onMounted(() => {
 .ai-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   font-weight: 600;
-  cursor: pointer;
   user-select: none;
   font-size: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.close-icon {
+  cursor: pointer;
+  font-size: 18px;
+  transition: transform 0.2s ease;
+}
+
+.close-icon:hover {
+  transform: scale(1.2);
 }
 
 .ai-icon {
