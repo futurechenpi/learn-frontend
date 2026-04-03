@@ -18,6 +18,14 @@
       </template>
       
       <div v-if="isExpanded" class="ai-content">
+        <div v-if="pageContext" class="context-bar">
+          <el-icon><Reading /></el-icon>
+          <span class="context-text">
+            <b>{{ pageContext.pageName }}</b>
+            <template v-if="pageContext.lessonTitle"> - {{ pageContext.lessonTitle }}</template>
+          </span>
+        </div>
+
         <div class="chat-messages" ref="messagesContainer">
           <div 
             v-for="message in messages" 
@@ -93,10 +101,11 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ChatDotRound, ArrowDown, Close } from '@element-plus/icons-vue'
+import { ChatDotRound, ArrowDown, Close, Reading } from '@element-plus/icons-vue'
 import { format } from 'date-fns'
 import MarkdownIt from 'markdown-it'
 import { cozeChat } from '@/api/coze'
+import { usePageContext } from '@/composables/usePageContext'
 
 // 初始化markdown-it
 const md = new MarkdownIt()
@@ -118,6 +127,8 @@ const suggestions = ref<string[]>([])
 const showSuggestionsEnabled = ref(true)
 let messageId = 0
 
+const { context: pageContext } = usePageContext()
+
 
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
@@ -135,26 +146,54 @@ function readAISettings(){
   }catch{ showSuggestionsEnabled.value = true }
 }
 
+const buildContextPrompt = (): string => {
+  const ctx = pageContext.value
+  if (!ctx) return ''
+
+  let prompt = `[当前学习上下文]\n`
+  prompt += `- 页面：${ctx.pageName}\n`
+  if (ctx.lessonTitle) prompt += `- 当前课程：${ctx.lessonTitle}\n`
+  if (ctx.lessonStep != null && ctx.lessonTotalSteps != null) {
+    prompt += `- 学习进度：第 ${ctx.lessonStep}/${ctx.lessonTotalSteps} 课\n`
+  }
+  if (ctx.contentSummary) prompt += `- 课程内容摘要：${ctx.contentSummary}\n`
+  if (ctx.codeExample) prompt += `- 相关代码示例：\n\`\`\`\n${ctx.codeExample}\n\`\`\`\n`
+  prompt += '\n请结合以上上下文回答用户的问题。'
+  return prompt
+}
+
 const sendMessage = async (message?: string) => {
   const content = message || inputMessage.value.trim()
   if (!content || isTyping.value) return
   
   inputMessage.value = ''
   
-  // 添加用户消息
   addMessage('user', content)
   
-  // 显示加载状态
   isTyping.value = true
   suggestions.value = []
   
-  // 准备上下文消息
-  const contextMessages = messages.value.map((msg) => ({
-    content: msg.content,
-    content_type: "text",
-    role: msg.type === "user" ? "user" : "assistant",
-    type: msg.type === "user" ? "question" : "answer",
-  }))
+  const contextMessages: any[] = []
+
+  const contextPrompt = buildContextPrompt()
+  if (contextPrompt) {
+    contextMessages.push({
+      content: contextPrompt,
+      content_type: "text",
+      role: "user",
+      type: "question",
+    })
+  }
+
+  contextMessages.push(...messages.value
+    .filter(m => m.type === 'user' || m.type === 'ai')
+    .map((msg) => ({
+      content: msg.content,
+      content_type: "text",
+      role: msg.type === "user" ? "user" : "assistant",
+      type: msg.type === "user" ? "question" : "answer",
+    }))
+  )
 
   try {
     readAISettings()
@@ -246,20 +285,20 @@ onMounted(() => {
   right: 24px;
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.35);
   transition: all 0.3s ease;
   z-index: 1000;
 }
 
 .minimize-button:hover {
   transform: scale(1.1);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.45);
 }
 
 .minimize-button .el-icon {
@@ -268,10 +307,10 @@ onMounted(() => {
 }
 
 .ai-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   border: none;
   color: white;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25);
   transition: all 0.3s ease;
 }
 
@@ -324,6 +363,29 @@ onMounted(() => {
   height: 500px;
   display: flex;
   flex-direction: column;
+}
+
+.context-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.context-text {
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.context-text b {
+  color: #fff;
 }
 
 .chat-messages {

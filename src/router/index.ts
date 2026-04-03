@@ -113,6 +113,12 @@ const router = createRouter({
       name: 'exercise-js',
       component: () => import('@/views/ExerciseJS.vue'),
       meta: { title: 'JavaScript 实战练习', requiresAuth: true }
+    },
+    {
+      path: '/favorites',
+      name: 'my-favorites',
+      component: () => import('@/views/MyFavorites.vue'),
+      meta: { title: '我的收藏', requiresAuth: true }
     }
   ]
 })

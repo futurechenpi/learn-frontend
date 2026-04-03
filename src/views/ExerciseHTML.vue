@@ -65,16 +65,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import AIAssistant from '@/components/AIAssistant.vue'
 import { useUserStore } from '@/stores/user'
 import { saveUserProgress } from '@/api/progress'
+import { usePageContext } from '@/composables/usePageContext'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const { setContext } = usePageContext()
 const step = computed(() => Number(route.params.step || 1))
 const subtitle = computed(() => String(route.query.title || '实时编辑与预览'))
 // 引入集中式课程与标题（仅 html）
@@ -106,6 +108,22 @@ const maxStep = computed(() => {
   const keys = Object.keys(htmlLessons).map(k => Number(k)).filter(n => !Number.isNaN(n))
   return keys.length ? Math.max(...keys) : 1
 })
+
+const updatePageContext = () => {
+  const lessonData = htmlLessons[step.value] || htmlLessons[1]
+  const title = htmlTitles[step.value] || subtitle.value
+  setContext({
+    pageName: 'HTML 实战练习',
+    routeName: 'exercise-html',
+    lessonTitle: title,
+    lessonStep: step.value,
+    lessonTotalSteps: maxStep.value,
+    contentSummary: `练习目标：${title}\n提示：${(lessonData?.hints || []).join('；')}`,
+    codeExample: lessonData?.html,
+  })
+}
+
+watch(step, () => updatePageContext())
 
 const loadDefaults = (force = false) => {
   // 0) 路由切换课时时，标题随 step 变动（由 subtitle 计算属性已处理）
@@ -175,6 +193,7 @@ onMounted(() => {
   run()
   initMonaco()
   showHints.value = false
+  updatePageContext()
 })
 
 // 路由步数变化时，强制载入对应模板

@@ -66,10 +66,12 @@ import AIAssistant from '@/components/AIAssistant.vue'
 import { jsLessons, jsTitles } from '@/views/learn/lessons'
 import { useUserStore } from '@/stores/user'
 import { saveUserProgress } from '@/api/progress'
+import { usePageContext } from '@/composables/usePageContext'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const { setContext } = usePageContext()
 const step = computed(() => Number(route.params.step || 1))
 const subtitle = computed(() => String(route.query.title || '实时编辑与预览'))
 const activeTab = ref<'html' | 'js'>('html')
@@ -90,7 +92,21 @@ function getPrimary(){
 
 const hints = computed(() => jsLessons[step.value]?.hints || [])
 
-// 使用集中式 jsTitles
+const updatePageContext = () => {
+  const lessonData = jsLessons[step.value] || jsLessons[1]
+  const title = jsTitles[step.value] || subtitle.value
+  setContext({
+    pageName: 'JavaScript 实战练习',
+    routeName: 'exercise-js',
+    lessonTitle: title,
+    lessonStep: step.value,
+    lessonTotalSteps: maxStep.value,
+    contentSummary: `练习目标：${title}\n提示：${(lessonData?.hints || []).join('；')}`,
+    codeExample: lessonData?.js,
+  })
+}
+
+watch(step, () => { loadLesson(); run(); updatePageContext() })
 
 function loadLesson(){
   const l = jsLessons[step.value] || jsLessons[1]
@@ -120,6 +136,7 @@ onMounted(() => {
   loadLesson()
   run()
   initMonaco()
+  updatePageContext()
 })
 
 watch(step, () => { loadLesson(); run() })

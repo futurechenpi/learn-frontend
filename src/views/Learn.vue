@@ -78,6 +78,13 @@
             <span>TailwindCSS</span>
           </el-menu-item>
         </el-menu>
+
+        <div class="sidebar-footer">
+          <div class="fav-entry" @click="router.push('/favorites')">
+            <el-icon><Collection /></el-icon>
+            <span>我的收藏</span>
+          </div>
+        </div>
       </aside>
 
       <!-- 主要内容区域 -->
@@ -96,7 +103,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, Document, Brush, Lightning, Star, Connection, Grid, MagicStick, House } from '@element-plus/icons-vue'
+import { ArrowDown, Document, Brush, Lightning, Star, Connection, Grid, MagicStick, House, Collection } from '@element-plus/icons-vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AIAssistant from '@/components/AIAssistant.vue'
 import { checkAdmin, getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
@@ -272,7 +279,9 @@ watch(
   width: 240px;
   background: white;
   border-right: 1px solid #e5e7eb;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .dark .sidebar {
@@ -282,7 +291,8 @@ watch(
 
 .sidebar-menu {
   border: none;
-  height: 100%;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .main-content {
@@ -310,5 +320,25 @@ watch(
   background-color: #1e3a8a;
   color: #60a5fa;
 }
+
+.sidebar-footer {
+  padding: 12px 0;
+  border-top: 1px solid #eee;
+}
+.dark .sidebar-footer { border-top-color: #404040; }
+
+.fav-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  margin-top: auto;
+}
+.fav-entry:hover { color: #f59e0b; background: #fffbeb; }
+.dark .fav-entry:hover { background: rgba(245,158,11,0.08); }
 </style>
 
