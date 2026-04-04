@@ -119,6 +119,30 @@ const router = createRouter({
       name: 'my-favorites',
       component: () => import('@/views/MyFavorites.vue'),
       meta: { title: '我的收藏', requiresAuth: true }
+    },
+    {
+      path: '/notes',
+      name: 'my-notes',
+      component: () => import('@/views/MyNotes.vue'),
+      meta: { title: '我的笔记', requiresAuth: true }
+    },
+    {
+      path: '/wrong-questions',
+      name: 'wrong-questions',
+      component: () => import('@/views/WrongQuestions.vue'),
+      meta: { title: '错题本', requiresAuth: true }
+    },
+    {
+      path: '/wrong-question-practice',
+      name: 'wrong-question-practice',
+      component: () => import('@/views/WrongQuestionPractice.vue'),
+      meta: { title: '错题重做', requiresAuth: true }
+    },
+    {
+      path: '/search',
+      name: 'search',
+      component: () => import('@/views/SearchResults.vue'),
+      meta: { title: '搜索' }
     }
   ]
 })

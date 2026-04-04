@@ -21,3 +21,11 @@ export function addComment(courseKey: string, content: string) {
 export function deleteComment(commentId: number) {
   return request.delete(`/comment/${commentId}`)
 }
+
+export function adminGetAllComments(courseKey?: string) {
+  return request.get('/admin/comment/list', { params: courseKey ? { courseKey } : {} })
+}
+
+export function adminDeleteComment(commentId: number) {
+  return request.delete(`/admin/comment/${commentId}`)
+}

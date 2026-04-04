@@ -243,7 +243,7 @@ export const cssConfig: CourseConfig = {
   codeLanguage: 'css',
   exerciseRouteName: 'exercise-css',
   aiCourseName: 'CSS',
-  hasExerciseSection: false,
+  hasExerciseSection: true,
   hasPreview: true,
   completionMessage: '恭喜！CSS学习完成！',
   lessons: [
@@ -276,7 +276,8 @@ p {
       preview: `
         <div style="color: blue; font-size: 24px; font-weight: bold;">这是标题样式</div>
         <p style="color: #333; line-height: 1.6;">这是段落样式，行高为1.6倍。</p>
-      `
+      `,
+      exercise: { description: '使用CSS基础语法，创建一个包含标题和段落的简单页面，设置字体颜色、大小和行高。' }
     },
     {
       title: '选择器详解',
@@ -317,7 +318,8 @@ div > p { padding: 5px; }`,
         <div style="border: 1px solid #ccc; padding: 10px;">
           <p style="margin: 10px;">div内的段落</p>
         </div>
-      `
+      `,
+      exercise: { description: '使用元素选择器、类选择器、ID选择器和后代/子选择器，为页面中的不同元素设置不同的样式。' }
     },
     {
       title: '盒模型和布局',
@@ -364,7 +366,8 @@ div > p { padding: 5px; }`,
           <div style="background: #4ecdc4; padding: 10px;">项目2</div>
           <div style="background: #45b7d1; padding: 10px;">项目3</div>
         </div>
-      `
+      `,
+      exercise: { description: '使用盒模型属性（padding/border/margin）和Flex布局，创建一个包含卡片和水平导航栏的页面布局。' }
     },
     {
       title: '响应式设计',
@@ -414,7 +417,8 @@ div > p { padding: 5px; }`,
         <div style="width: 100%; padding: 10px; background: #f0f0f0; border: 1px solid #ccc;">
           <p>响应式容器 - 在不同屏幕尺寸下会调整宽度</p>
         </div>
-      `
+      `,
+      exercise: { description: '使用媒体查询和弹性单位（rem/vw/vh），创建一个在手机、平板、桌面端都能良好显示的响应式页面。' }
     }
   ]
 }
@@ -427,7 +431,7 @@ export const jsConfig: CourseConfig = {
   codeLanguage: 'javascript',
   exerciseRouteName: 'exercise-js',
   aiCourseName: 'JavaScript',
-  hasExerciseSection: false,
+  hasExerciseSection: true,
   hasPreview: false,
   completionMessage: '恭喜！JavaScript学习完成！',
   lessons: [
@@ -463,7 +467,8 @@ let empty = null;
 let notDefined = undefined;
 
 // 输出到控制台
-console.log(name, age, number);`
+console.log(name, age, number);`,
+      exercise: { description: '使用 let/const/var 声明变量，定义不同数据类型的值，并在控制台输出它们。' }
     },
     {
       title: '函数和作用域',
@@ -506,7 +511,8 @@ function scopeExample() {
 }
 
 console.log(globalVar); // 可以访问
-// console.log(localVar); // 错误：无法访问`
+// console.log(localVar); // 错误：无法访问`,
+      exercise: { description: '使用函数声明、函数表达式和箭头函数三种方式定义函数，理解全局作用域与局部作用域的区别。' }
     },
     {
       title: '对象和数组',
@@ -556,7 +562,8 @@ fruits.forEach(fruit => {
 
 // 使用map创建新数组
 const upperFruits = fruits.map(fruit => fruit.toUpperCase());
-console.log(upperFruits);`
+console.log(upperFruits);`,
+      exercise: { description: '创建一个包含多个属性的对象，以及一个数组，使用 push/forEach/map/filter 等方法对数据进行操作。' }
     },
     {
       title: 'DOM操作',
@@ -601,7 +608,8 @@ title.classList.remove("old-class");
 // 添加事件监听器
 button.addEventListener("click", function() {
     alert("按钮被点击了！");
-});`
+});`,
+      exercise: { description: '使用 DOM API 选择页面元素，修改其文本内容、样式和类名，并为按钮添加点击事件监听器。' }
     },
     {
       title: '异步编程',
@@ -662,7 +670,8 @@ async function getUsers() {
     } catch (error) {
         console.error('请求失败:', error);
     }
-}`
+}`,
+      exercise: { description: '使用 Promise 和 async/await 处理异步操作，包括定时器和 fetch 请求，正确处理成功和错误情况。' }
     }
   ]
 }
@@ -673,7 +682,7 @@ export const vue3Config: CourseConfig = {
   totalSteps: 6,
   progressKey: 'vue3',
   codeLanguage: 'vue',
-  exerciseRouteName: 'exercise',
+  exerciseRouteName: '',
   aiCourseName: 'Vue3',
   hasExerciseSection: false,
   hasPreview: false,
@@ -1018,7 +1027,7 @@ export const reactConfig: CourseConfig = {
   totalSteps: 4,
   progressKey: 'react',
   codeLanguage: 'react',
-  exerciseRouteName: 'exercise',
+  exerciseRouteName: '',
   aiCourseName: 'React',
   hasExerciseSection: false,
   hasPreview: false,
@@ -1142,7 +1151,7 @@ export const tsConfig: CourseConfig = {
   totalSteps: 4,
   progressKey: 'typescript',
   codeLanguage: 'typescript',
-  exerciseRouteName: 'exercise',
+  exerciseRouteName: '',
   aiCourseName: 'TypeScript',
   hasExerciseSection: false,
   hasPreview: false,
@@ -1263,7 +1272,7 @@ export const tailwindcssConfig: CourseConfig = {
   totalSteps: 4,
   progressKey: 'tailwindcss',
   codeLanguage: 'html',
-  exerciseRouteName: 'exercise',
+  exerciseRouteName: '',
   aiCourseName: 'TailwindCSS',
   hasExerciseSection: false,
   hasPreview: false,

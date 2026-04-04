@@ -42,38 +42,45 @@ service.interceptors.request.use(
   }
 )
 
+let isLoggingOut = false
+
+function handleTokenExpired(message?: string) {
+  if (isLoggingOut) return
+  isLoggingOut = true
+  const userStore = useUserStore()
+  userStore.logout()
+  ElMessage.error(message || '登录已过期，请重新登录')
+  const currentPath = router.currentRoute.value.path
+  if (currentPath !== '/login') {
+    router.push('/login')
+  }
+  setTimeout(() => { isLoggingOut = false }, 1000)
+}
+
 // 响应拦截器
 service.interceptors.response.use(
   (response: AxiosResponse) => {
     const { data } = response
-    // 如果返回的code不是200，说明有错误
     if (data.code !== 200 && data.code !== 0) {
-      // 令牌失效类业务码（按后端约定可补充 40101/40100 等）
       if (data.code === 401 || data.code === 40101) {
-        const userStore = useUserStore()
-        userStore.logout()
-        ElMessage.error(data.message || '登录已过期，请重新登录')
-        router.push('/login')
+        handleTokenExpired(data.message)
         return Promise.reject(new Error('Unauthorized'))
       }
       ElMessage.error(data.message || '请求失败')
       return Promise.reject(new Error(data.message || '请求失败'))
     }
-    
+
     return data
   },
   (error) => {
     console.error('响应错误:', error)
-    
+
     if (error.response) {
       const { status, data } = error.response
-      
+
       switch (status) {
         case 401:
-          ElMessage.error('登录已过期，请重新登录')
-          const userStore = useUserStore()
-          userStore.logout()
-          router.push('/login')
+          handleTokenExpired(data?.message)
           break
         case 403:
           ElMessage.error('没有权限访问')
@@ -92,7 +99,7 @@ service.interceptors.response.use(
     } else {
       ElMessage.error('网络错误')
     }
-    
+
     return Promise.reject(error)
   }
 )

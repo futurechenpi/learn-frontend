@@ -2,6 +2,7 @@
   <div class="favorites-page">
     <div class="fav-container">
       <div class="fav-header">
+        <el-button text @click="router.back()"><el-icon><ArrowLeft /></el-icon>返回</el-button>
         <h2>⭐ 我的收藏</h2>
         <p v-if="!userStore.isLoggedIn" class="login-tip">
           请先<router-link to="/login">登录</router-link>后查看收藏
@@ -39,7 +40,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight } from '@element-plus/icons-vue'
+import { ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { getFavoriteList } from '@/api/favorite'
 import type { FavoriteItem } from '@/api/favorite'

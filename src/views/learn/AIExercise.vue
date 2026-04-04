@@ -89,13 +89,23 @@
             <div v-if="submitted" class="result-section" :class="{ correct: gradeResult?.score === 100 }">
               <div class="result-header">
                 <span v-if="gradeResult?.score === 100" class="success">✓ 答案正确！</span>
-                <span v-else class="error">✗ 答案错误</span>
+                <span v-else class="error">✗ 答案错误 (得分：{{ gradeResult?.score || 0 }}分)</span>
               </div>
               <div class="feedback">{{ gradeResult?.feedback }}</div>
               <div class="explanation">
                 <h5>答案解析：</h5>
                 <p>{{ question.explanation }}</p>
               </div>
+              <el-button
+                v-if="(gradeResult?.score ?? 0) < 100"
+                type="warning"
+                size="small"
+                :loading="savingWrong"
+                @click="saveToWrongBook"
+                style="margin-top: 12px;"
+              >
+                📌 加入错题本
+              </el-button>
             </div>
 
             <div class="button-group">
@@ -131,9 +141,12 @@ import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import CodeHighlighter from '@/components/CodeHighlighter.vue'
 import { generateQuestion as generateQuestionAPI, gradeAnswer, type ExerciseQuestion } from '@/api/exercise'
+import { addWrongQuestion, getWrongQuestions, updateWrongQuestionNote } from '@/api/wrongQuestion'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const selectedCourse = ref(route.params.course as string || 'JavaScript')
 const selectedDifficulty = ref('medium')
@@ -143,6 +156,7 @@ const submitted = ref(false)
 const loading = ref(false)
 const grading = ref(false)
 const gradeResult = ref<{ score: number; feedback: string } | null>(null)
+const savingWrong = ref(false)
 
 const difficultyTagType = () => {
   const map: Record<string, string> = {
@@ -286,6 +300,40 @@ const resetQuestion = () => {
   userAnswers.value = userAnswers.value.map(() => '')
   submitted.value = false
   gradeResult.value = null
+}
+
+const saveToWrongBook = async () => {
+  if (!question.value || !userStore.userInfo?.userId) return
+  savingWrong.value = true
+  try {
+    const wrongCode = JSON.stringify({
+      question: question.value.question,
+      skeletonCode: question.value.skeleton_code,
+      fullCode: question.value.full_code,
+      answer: question.value.answer,
+      keyPoints: question.value.key_points
+    })
+    const note = `我的答案：${userAnswers.value.join(' | ')}\n得分：${gradeResult.value?.score || 0}分\n反馈：${gradeResult.value?.feedback || ''}`
+
+    const res: any = await getWrongQuestions(userStore.userInfo.userId)
+    const existing = (res?.data || []).find((item: any) => item.wrongCode === wrongCode)
+
+    if (existing) {
+      await updateWrongQuestionNote(existing.id, note + '\n\n--- 重复作答 ---\n' + new Date().toLocaleString())
+      ElMessage.success('已更新错题记录')
+    } else {
+      await addWrongQuestion({
+        courseKey: selectedCourse.value.toLowerCase(),
+        lessonTitle: `${selectedCourse.value} - ${selectedDifficulty.value}难度`,
+        wrongCode,
+        note
+      })
+      ElMessage.success('已加入错题本')
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || '保存失败')
+  }
+  savingWrong.value = false
 }
 
 const goBack = () => {

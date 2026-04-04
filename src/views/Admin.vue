@@ -17,6 +17,8 @@
           <el-menu-item index="users">用户管理</el-menu-item>
           <el-menu-item index="settings">系统设置</el-menu-item>
           <el-menu-item index="agent">智能体（陈刚）</el-menu-item>
+          <el-menu-item index="comments">评论管理</el-menu-item>
+          <el-menu-item index="achievements">成就管理</el-menu-item>
         </el-menu>
       </aside>
 
@@ -153,6 +155,53 @@
           <AdminAgent />
         </div>
 
+        <div v-show="activeTab === 'comments'">
+          <div class="comment-admin-panel">
+            <div class="comment-admin-filters">
+              <el-select v-model="commentCourseFilter" placeholder="全部课程" clearable style="width: 200px" @change="loadComments">
+                <el-option v-for="c in courseKeyOptions" :key="c.value" :label="c.label" :value="c.value" />
+              </el-select>
+              <el-button type="primary" @click="loadComments">刷新</el-button>
+            </div>
+            <el-table :data="adminComments" style="width: 100%" v-loading="commentLoading" :size="tableSize">
+              <el-table-column prop="id" label="ID" width="70" />
+              <el-table-column label="课程" width="140">
+                <template #default="scope">
+                  <el-tag size="small">{{ getCourseLabel(scope.row.courseKey) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="userName" label="用户" width="120" />
+              <el-table-column prop="content" label="评论内容" min-width="250" show-overflow-tooltip />
+              <el-table-column label="时间" width="170">
+                <template #default="scope">{{ formatCommentTime(scope.row.createdAt) }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="100">
+                <template #default="scope">
+                  <el-button size="small" text type="danger" @click="confirmDeleteComment(scope.row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div class="table-pagination">
+              <span class="comment-total">共 {{ adminComments.length }} 条评论</span>
+            </div>
+          </div>
+        </div>
+
+        <div v-show="activeTab === 'achievements'">
+          <div class="achievement-admin-panel">
+            <el-table :data="adminAchievements" style="width: 100%" v-loading="achievementLoading" :size="tableSize">
+              <el-table-column prop="id" label="ID" width="70" />
+              <el-table-column label="图标" width="70">
+                <template #default="scope">{{ scope.row.icon }}</template>
+              </el-table-column>
+              <el-table-column prop="name" label="名称" width="140" />
+              <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+              <el-table-column prop="code" label="条件代码" width="140" />
+              <el-table-column prop="conditionValue" label="条件值" width="90" />
+            </el-table>
+          </div>
+        </div>
+
         <div v-show="activeTab === 'settings'">
           <el-card>
             <template #header>
@@ -243,6 +292,8 @@ import {
   deleteUser,
   type UserInfo
 } from '@/api/user'
+import { adminGetAllComments, adminDeleteComment } from '@/api/comment'
+import { getAllAchievements } from '@/api/achievement'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
 import AdminAgent from '@/components/AdminAgent.vue'
@@ -256,7 +307,7 @@ let totalChart: echarts.ECharts | null = null
 let pageChart: echarts.ECharts | null = null
 
 const active = ref('dashboard')
-const activeTab = ref<'stats' | 'roles' | 'users' | 'settings' | 'agent'>('stats')
+const activeTab = ref<'stats' | 'roles' | 'users' | 'settings' | 'agent' | 'comments' | 'achievements'>('stats')
 const userStore = useUserStore()
 const filterKey = ref('home')
 const pageKeyOptions = [
@@ -564,6 +615,80 @@ const submitUser = async () => {
   loadUsers()
 }
 
+// ========= 评论管理 =========
+const adminComments = ref<any[]>([])
+const commentLoading = ref(false)
+const commentCourseFilter = ref('')
+
+const courseKeyOptions = [
+  { label: 'HTML 基础', value: 'html' },
+  { label: 'CSS 样式', value: 'css' },
+  { label: 'JavaScript', value: 'javascript' },
+  { label: 'Vue3 框架', value: 'vue3' },
+  { label: 'React 框架', value: 'react' },
+  { label: 'TypeScript', value: 'typescript' },
+  { label: 'TailwindCSS', value: 'tailwindcss' }
+]
+
+const courseLabelMap: Record<string, string> = {
+  html: 'HTML 基础',
+  css: 'CSS 样式',
+  javascript: 'JavaScript',
+  vue3: 'Vue3 框架',
+  react: 'React 框架',
+  typescript: 'TypeScript',
+  tailwindcss: 'TailwindCSS'
+}
+
+function getCourseLabel(key: string) {
+  return courseLabelMap[key] || key
+}
+
+function formatCommentTime(time: string | null) {
+  if (!time) return '-'
+  const d = new Date(time)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+async function loadComments() {
+  commentLoading.value = true
+  try {
+    const res: any = await adminGetAllComments(commentCourseFilter.value || undefined)
+    adminComments.value = res?.data || []
+  } finally {
+    commentLoading.value = false
+  }
+}
+
+async function confirmDeleteComment(row: any) {
+  try {
+    await ElMessageBox.confirm(`确认删除【${row.userName}】在${getCourseLabel(row.courseKey)}的这条评论吗？`, '删除评论', { type: 'warning' })
+    await adminDeleteComment(row.id)
+    ElMessage.success('已删除')
+    loadComments()
+  } catch {}
+}
+
+watch(() => activeTab.value, (val) => {
+  if (val === 'comments') loadComments()
+  if (val === 'achievements') loadAchievements()
+})
+
+// ========= 成就管理 =========
+const adminAchievements = ref<any[]>([])
+const achievementLoading = ref(false)
+
+async function loadAchievements() {
+  achievementLoading.value = true
+  try {
+    const res: any = await getAllAchievements()
+    adminAchievements.value = res?.data || []
+  } finally {
+    achievementLoading.value = false
+  }
+}
+
 // 将系统设置应用到当前页（表格尺寸、默认分页、仪表盘刷新）
 function applySettingsToPages(){
   try {
@@ -744,6 +869,17 @@ watch(() => settings.primaryColor, applySettings)
 
 .table-pagination { margin-top: 12px; }
 .user-actions { margin-bottom: 12px; }
+
+.comment-admin-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.comment-total {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
 
 /* 系统设置面板可见性与对比度优化 */
 :deep(.segmented-plain .el-segmented__item.is-selected) {

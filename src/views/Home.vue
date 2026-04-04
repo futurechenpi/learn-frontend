@@ -4,13 +4,11 @@
     <header class="header" :class="{ 'scrolled': isScrolled }">
       <div class="container mx-auto px-4 h-16 flex items-center justify-between">
         <div class="flex items-center space-x-4">
-          <h1 class="text-2xl font-bold text-primary-600 dark:text-primary-400">
-            前端学习网站
-          </h1>
+          <AppLogo />
         </div>
         
         <div class="flex items-center space-x-4">
-          <!-- 主题切换 -->
+          <GlobalSearch />
           <ThemeToggle />
 
           <!-- 用户下拉，与学习中心一致 -->
@@ -141,6 +139,8 @@ import { ElMessage } from 'element-plus'
 import { User, Key, Reading, ArrowDown } from '@element-plus/icons-vue'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import AppLogo from '@/components/AppLogo.vue'
+import GlobalSearch from '@/components/GlobalSearch.vue'
 import { checkAdmin, getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
 import { getUserProgress } from '@/api/progress'
 
@@ -361,7 +361,6 @@ const goToCourse = (courseName: string, index: number) => {
 
 <style scoped>
 .home {
-  min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
@@ -718,9 +717,8 @@ const goToCourse = (courseName: string, index: number) => {
 .feature-item {
   text-align: center;
   padding: 24px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: white;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);

@@ -54,26 +54,23 @@
                 :language="config.codeLanguage"
                 :title="config.codeLanguage.toUpperCase() + ' 代码'"
               />
-              <div v-if="!config.hasExerciseSection" class="mt-3 flex gap-2">
-                <el-button type="primary" @click="goExercise">开始练习</el-button>
-                <el-button @click="goAIExercise">AI出题</el-button>
-              </div>
+            </div>
+
+            <div v-if="config.hasPreview && currentLesson.preview" class="preview-section">
+              <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">效果预览</h4>
+              <div class="preview-content" v-html="currentLesson.preview"></div>
             </div>
 
             <div v-if="config.hasExerciseSection && currentLesson.exercise" class="exercise-section">
               <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">实践练习</h4>
               <div class="exercise-content">
                 <p class="text-gray-600 dark:text-gray-400 mb-4">{{ currentLesson.exercise.description }}</p>
-                <div class="exercise-actions">
-                  <el-button type="primary" @click="goExercise">开始练习</el-button>
-                  <el-button @click="goAIExercise">AI出题</el-button>
-                </div>
               </div>
             </div>
 
-            <div v-if="config.hasPreview && currentLesson.preview" class="preview-section">
-              <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3">效果预览</h4>
-              <div class="preview-content" v-html="currentLesson.preview"></div>
+            <div class="mt-5 flex gap-2">
+              <el-button v-if="config.exerciseRouteName" type="primary" @click="goExercise">开始练习</el-button>
+              <el-button v-if="config.aiCourseName" @click="goAIExercise">AI出题</el-button>
             </div>
           </div>
         </div>

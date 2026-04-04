@@ -91,15 +91,15 @@
             <span>安全设置</span>
           </div>
         </template>
-        
+
         <div class="security-actions">
           <div class="action-item">
             <div class="action-info">
               <h4 class="action-title">修改密码</h4>
               <p class="action-desc">定期修改密码，保护账户安全</p>
             </div>
-            <el-button 
-              type="primary" 
+            <el-button
+              type="primary"
               @click="showChangePasswordDialog"
               class="action-btn"
             >
@@ -108,6 +108,28 @@
             </el-button>
           </div>
         </div>
+      </el-card>
+
+      <!-- 学习仪表盘 -->
+      <el-card class="profile-card">
+        <template #header>
+          <div class="card-header">
+            <el-icon class="header-icon"><DataAnalysis /></el-icon>
+            <span>学习统计</span>
+          </div>
+        </template>
+        <LearningDashboard />
+      </el-card>
+
+      <!-- 成就徽章 -->
+      <el-card class="profile-card">
+        <template #header>
+          <div class="card-header">
+            <el-icon class="header-icon"><Trophy /></el-icon>
+            <span>我的成就</span>
+          </div>
+        </template>
+        <AchievementPanel />
       </el-card>
     </div>
 
@@ -251,7 +273,9 @@ import {
   User, 
   Edit, 
   Lock, 
-  Key 
+  Key,
+  DataAnalysis,
+  Trophy
 } from '@element-plus/icons-vue'
 import { 
   changePassword as changePasswordApi, 
@@ -264,6 +288,8 @@ import {
   getAvatarUrl,
   getAvatarSignedUrl
 } from '@/api/user'
+import LearningDashboard from '@/components/LearningDashboard.vue'
+import AchievementPanel from '@/components/AchievementPanel.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -514,7 +540,6 @@ onMounted(() => {
 
 <style scoped>
 .profile-page {
-  min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
 }
@@ -553,6 +578,9 @@ onMounted(() => {
 .profile-card {
   margin-bottom: 24px;
   border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
@@ -562,12 +590,12 @@ onMounted(() => {
   gap: 8px;
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: #fff;
 }
 
 .header-icon {
   font-size: 20px;
-  color: var(--el-color-primary);
+  color: #93c5fd;
 }
 
 .user-info {
@@ -581,7 +609,7 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .avatar-box {
@@ -600,7 +628,7 @@ onMounted(() => {
 
 .avatar-hint {
   font-size: 12px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .info-item {
@@ -608,7 +636,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .info-item:last-child {
@@ -617,12 +645,12 @@ onMounted(() => {
 
 .info-label {
   font-weight: 600;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   min-width: 80px;
 }
 
 .info-value {
-  color: #333;
+  color: #fff;
   font-size: 16px;
 }
 
@@ -633,8 +661,18 @@ onMounted(() => {
 }
 
 .edit-btn {
-  padding: 6px 12px;
-  font-size: 14px;
+  padding: 5px 14px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  color: #fff !important;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s;
+}
+.edit-btn:hover {
+  background: rgba(255, 255, 255, 0.32) !important;
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 .security-actions {
@@ -648,9 +686,9 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  background: #f8f9fa;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .action-info {
@@ -661,12 +699,12 @@ onMounted(() => {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: #fff;
 }
 
 .action-desc {
   margin: 0;
-  color: #666;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
 }
 
@@ -716,7 +754,12 @@ onMounted(() => {
   color: #a0aec0;
 }
 
-.dark .info-item {
-  border-bottom-color: #4b5563;
+/* el-card header 毛玻璃适配 */
+.profile-card :deep(.el-card__header) {
+  background: transparent;
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+.profile-card :deep(.el-card__body) {
+  background: transparent;
 }
 </style>

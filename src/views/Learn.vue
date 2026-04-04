@@ -4,18 +4,7 @@
     <header class="learn-header">
       <div class="header-content">
         <div class="header-left">
-          <el-button 
-            type="primary" 
-            text 
-            @click="goHome"
-            class="back-home-btn"
-          >
-            <el-icon><House /></el-icon>
-            返回首页
-          </el-button>
-          <h1 class="text-xl font-bold text-gray-800 dark:text-gray-200">
-            前端学习中心
-          </h1>
+          <AppLogo :text="'前端学习中心'" />
         </div>
         
         <div class="header-right">
@@ -84,6 +73,14 @@
             <el-icon><Collection /></el-icon>
             <span>我的收藏</span>
           </div>
+          <div class="fav-entry" @click="router.push('/notes')">
+            <el-icon><EditPen /></el-icon>
+            <span>我的笔记</span>
+          </div>
+          <div class="fav-entry" @click="router.push('/wrong-questions')">
+            <el-icon><Warning /></el-icon>
+            <span>错题本</span>
+          </div>
         </div>
       </aside>
 
@@ -95,17 +92,27 @@
     
     <!-- AI 助手 -->
     <AIAssistant />
+
+    <!-- 浮动笔记面板 -->
+    <FloatingNotePanel
+      v-if="userStore.isLoggedIn"
+      :course-key="noteCourseKey"
+      :lesson-step="noteStep"
+      :lesson-title="noteTitle"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, Document, Brush, Lightning, Star, Connection, Grid, MagicStick, House, Collection } from '@element-plus/icons-vue'
+import { ArrowDown, Document, Brush, Lightning, Star, Connection, Grid, MagicStick, House, Collection, EditPen, Warning } from '@element-plus/icons-vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import AppLogo from '@/components/AppLogo.vue'
 import AIAssistant from '@/components/AIAssistant.vue'
+import FloatingNotePanel from '@/components/FloatingNotePanel.vue'
 import { checkAdmin, getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
 
 const router = useRouter()
@@ -115,6 +122,30 @@ const userStore = useUserStore()
 const activeMenu = ref('html')
 const canSeeAdmin = ref(false)
 const avatarUrl = ref<string>('')
+
+const routeToCourseKey: Record<string, string> = {
+  html: 'html', css: 'css', javascript: 'javascript',
+  vue3: 'vue3', react: 'react', typescript: 'typescript', tailwindcss: 'tailwindcss'
+}
+
+const noteCourseKey = computed(() => {
+  const name = route.name as string
+  if (name === 'exercise-html') return 'html'
+  if (name === 'exercise-css') return 'css'
+  if (name === 'exercise-js') return 'javascript'
+  const key = route.path.split('/learn/')[1]?.split('/')[0]
+  return routeToCourseKey[key || ''] || ''
+})
+
+const noteStep = computed(() => {
+  const step = route.params.step
+  return step ? Number(step) : undefined
+})
+
+const noteTitle = computed(() => {
+  const title = route.query.title as string
+  return title || ''
+})
 
 // 根据当前路由设置激活的菜单项
 onMounted(async () => {
