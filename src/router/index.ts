@@ -139,6 +139,12 @@ const router = createRouter({
       meta: { title: '错题重做', requiresAuth: true }
     },
     {
+      path: '/mastered',
+      name: 'mastered-questions',
+      component: () => import('@/views/MasteredQuestions.vue'),
+      meta: { title: '已掌握的题', requiresAuth: true }
+    },
+    {
       path: '/search',
       name: 'search',
       component: () => import('@/views/SearchResults.vue'),

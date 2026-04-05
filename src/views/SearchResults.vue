@@ -1,6 +1,22 @@
 <template>
   <div class="search-page">
     <div class="search-container">
+      <header class="page-header">
+        <div class="header-left">
+          <el-button @click="router.back()" class="back-btn">
+            <el-icon><ArrowLeft /></el-icon>
+            <span>返回</span>
+          </el-button>
+          <div class="title-group">
+            <h2>🔍 搜索结果</h2>
+            <p v-if="query" class="subtitle">关键词："<strong>{{ query }}</strong>"</p>
+          </div>
+        </div>
+        <div v-if="allResults.length > 0" class="header-right">
+          <span class="count-badge">共 {{ allResults.length }} 条结果</span>
+        </div>
+      </header>
+
       <div class="search-bar">
         <el-input
           v-model="query"
@@ -69,6 +85,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Fuse from 'fuse.js'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { getNotes } from '@/api/note'
 import { getCommentList } from '@/api/comment'
 import { useUserStore } from '@/stores/user'
@@ -168,9 +185,75 @@ onMounted(() => {
 .dark .search-page { background: #111827; }
 .search-container { max-width: 900px; margin: 0 auto; }
 
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+.dark .page-header { background: #1e1e1e; border: 1px solid #333; }
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.back-btn:hover {
+  background: #f0f9ff;
+  color: #3b82f6;
+  transform: translateX(-2px);
+}
+.dark .back-btn:hover { background: #1e3a8a; }
+
+.title-group h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #1f2937;
+}
+.dark .title-group h2 { color: #e5e7eb; }
+
+.subtitle {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin: 4px 0 0 0;
+}
+.subtitle strong {
+  color: #3b82f6;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.count-badge {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.dark .count-badge { background: rgba(16,185,129,0.15); color: #34d399; }
+
 .search-bar { margin-bottom: 28px; }
 
-.loading-wrap, .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 16px; }
+.loading-wrap, .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); color: #9ca3af; font-size: 16px; }
+.dark .loading-wrap, .dark .empty-state { background: #1e1e1e; }
 
 .result-section { margin-bottom: 28px; }
 .result-section h3 {

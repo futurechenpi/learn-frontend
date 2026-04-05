@@ -6,7 +6,11 @@
         <div class="header-left">
           <AppLogo :text="'前端学习中心'" />
         </div>
-        
+
+        <div class="header-center">
+          <GlobalSearch />
+        </div>
+
         <div class="header-right">
           <ThemeToggle />
           
@@ -81,6 +85,10 @@
             <el-icon><Warning /></el-icon>
             <span>错题本</span>
           </div>
+          <div class="fav-entry mastered" @click="router.push('/mastered')">
+            <el-icon><Trophy /></el-icon>
+            <span>已掌握</span>
+          </div>
         </div>
       </aside>
 
@@ -108,11 +116,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, Document, Brush, Lightning, Star, Connection, Grid, MagicStick, House, Collection, EditPen, Warning } from '@element-plus/icons-vue'
+import { ArrowDown, Document, Brush, Lightning, Star, Connection, Grid, MagicStick, House, Collection, EditPen, Warning, Trophy } from '@element-plus/icons-vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AppLogo from '@/components/AppLogo.vue'
 import AIAssistant from '@/components/AIAssistant.vue'
 import FloatingNotePanel from '@/components/FloatingNotePanel.vue'
+import GlobalSearch from '@/components/GlobalSearch.vue'
 import { checkAdmin, getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
 
 const router = useRouter()
@@ -256,6 +265,14 @@ watch(
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-shrink: 0;
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0 24px;
 }
 
 .back-home-btn {
@@ -371,5 +388,13 @@ watch(
 }
 .fav-entry:hover { color: #f59e0b; background: #fffbeb; }
 .dark .fav-entry:hover { background: rgba(245,158,11,0.08); }
+
+.fav-entry.mastered:hover {
+  color: #16a34a;
+  background: #f0fdf4;
+}
+.dark .fav-entry.mastered:hover {
+  background: rgba(22,163,74,0.1);
+}
 </style>
 

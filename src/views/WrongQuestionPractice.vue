@@ -60,15 +60,24 @@
             </div>
           </div>
 
-          <div v-if="submitted" class="result-section" :class="{ correct: gradeResult?.score === 100 }">
+          <div v-if="submitted" class="result-section" :class="resultClass">
             <div class="result-header">
-              <span v-if="gradeResult?.score === 100" class="success">✓ 答案正确！</span>
-              <span v-else class="error">✗ 答案错误 (得分：{{ gradeResult?.score || 0 }}分)</span>
+              <span v-if="gradeResult?.score === 100" class="success">🎉 完美！答案全部正确 (100分)</span>
+              <span v-else-if="(gradeResult?.score ?? 0) >= 70" class="partial">👍 做得不错！得分：{{ gradeResult?.score || 0 }}分</span>
+              <span v-else-if="(gradeResult?.score ?? 0) > 0" class="warning">💪 继续努力！得分：{{ gradeResult?.score || 0 }}分</span>
+              <span v-else class="error">❌ 需要再复习一下 (0分)</span>
             </div>
             <div class="feedback">{{ gradeResult?.feedback }}</div>
             <div v-if="originalNote" class="original-note">
-              <h5>上次作答记录：</h5>
-              <pre>{{ originalNote }}</pre>
+              <h5>📝 上次作答记录：</h5>
+              <div class="note-content" v-html="formatNote(originalNote)"></div>
+            </div>
+
+            <div v-if="gradeResult?.score === 100 && wrongQuestionId" class="success-actions">
+              <p class="success-tip">🎊 恭喜你完全掌握了这道题！</p>
+              <el-button type="success" size="small" @click="removeFromWrongBook" :loading="removing">
+                ✨ 将该题从错题本中移除
+              </el-button>
             </div>
           </div>
 
@@ -84,8 +93,11 @@
             <el-button v-if="!submitted" @click="resetAnswers">
               重置答案
             </el-button>
-            <el-button v-if="submitted && (gradeResult?.score ?? 0) < 100" type="warning" @click="submitAnswer" :loading="grading">
+            <el-button v-if="submitted && (gradeResult?.score ?? 0) < 100" type="warning" @click="retryAnswer" :loading="grading">
               再试一次
+            </el-button>
+            <el-button v-if="submitted && (gradeResult?.score ?? 0) === 100" type="primary" @click="goBack">
+              返回错题本
             </el-button>
             <el-button @click="goBack">
               返回错题本
@@ -98,15 +110,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Loading } from '@element-plus/icons-vue'
 import CodeHighlighter from '@/components/CodeHighlighter.vue'
 import { gradeAnswer } from '@/api/exercise'
+import { getWrongQuestions, markAsMastered } from '@/api/wrongQuestion'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 interface QuestionData {
   question: string
@@ -123,9 +138,19 @@ const userAnswers = ref<string[]>([])
 const submitted = ref(false)
 const grading = ref(false)
 const gradeResult = ref<{ score: number; feedback: string } | null>(null)
+const wrongQuestionId = ref<number | null>(null)
+const removing = ref(false)
 
 const difficultyTagType = ref('warning')
 const difficultyLabel = ref('中等')
+
+const resultClass = computed(() => {
+  const score = gradeResult.value?.score ?? 0
+  if (score === 100) return 'correct'
+  if (score >= 70) return 'partial-correct'
+  if (score > 0) return 'warning'
+  return 'error'
+})
 
 onMounted(() => {
   loadQuestionData()
@@ -154,6 +179,10 @@ function loadQuestionData() {
       }
 
       loaded.value = true
+
+      findWrongQuestionId(inner).then(() => {
+        console.log('错题ID查找完成:', wrongQuestionId.value)
+      })
     } catch (e) {
       console.error('解析错题数据失败', e)
       questionData.value = null
@@ -162,6 +191,44 @@ function loadQuestionData() {
   } else {
     loaded.value = true
     questionData.value = null
+  }
+}
+
+async function findWrongQuestionId(questionInner: any) {
+  if (!userStore.userInfo?.userId) return
+  try {
+    const res: any = await getWrongQuestions(userStore.userInfo.userId)
+    const allQuestions = res?.data || []
+
+    console.log('查找错题ID，总错题数:', allQuestions.length)
+    console.log('当前题目question:', questionInner.question)
+
+    for (const item of allQuestions) {
+      try {
+        if (!item.wrongCode) continue
+
+        let itemData: any = {}
+        if (typeof item.wrongCode === 'string') {
+          itemData = JSON.parse(item.wrongCode)
+        } else {
+          itemData = item.wrongCode
+        }
+
+        if (itemData.question === questionInner.question ||
+            (itemData.question && questionInner.question &&
+             itemData.question.slice(0, 50) === questionInner.question.slice(0, 50))) {
+          wrongQuestionId.value = item.id
+          console.log('找到匹配的错题，ID:', item.id)
+          return
+        }
+      } catch (e) {
+        continue
+      }
+    }
+
+    console.warn('未找到匹配的错题记录')
+  } catch (e) {
+    console.error('查找错题ID失败', e)
   }
 }
 
@@ -194,6 +261,54 @@ function resetAnswers() {
   userAnswers.value = userAnswers.value.map(() => '')
   submitted.value = false
   gradeResult.value = null
+}
+
+function retryAnswer() {
+  submitted.value = false
+  gradeResult.value = null
+}
+
+async function removeFromWrongBook() {
+  if (!wrongQuestionId.value) {
+    ElMessage.warning('未找到错题记录')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      '确定要将这道题从错题本中移除吗？\n移除后将保存到"已掌握历史"，可以随时回顾你的学习成果！',
+      '确认移除',
+      { type: 'success', confirmButtonText: '确认移除', cancelButtonText: '保留在错题本' }
+    )
+  } catch {
+    return
+  }
+
+  removing.value = true
+  try {
+    await markAsMastered(wrongQuestionId.value)
+
+    ElMessage.success('✨ 已从错题本移除并保存到已掌握历史！')
+    wrongQuestionId.value = null
+    setTimeout(() => {
+      router.push('/mastered')
+    }, 1500)
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || '移除失败，请重试')
+  } finally {
+    removing.value = false
+  }
+}
+
+function formatNote(note: string): string {
+  return note
+    .replace(/【作答记录.*?】/g, '<strong style="color: #3b82f6;">$&</strong>')
+    .replace(/得分：(\d+)分/g, '<span style="color: #16a34a; font-weight: bold;">得分：$1分</span>')
+    .replace(/答案 \d+：.*?✓/g, '<span style="color: #16a34a;">$&</span>')
+    .replace(/答案 \d+：.*?✗/g, '<span style="color: #dc2626;">$&</span>')
+    .replace(/(正确答案:[^)]*\))/g, '<em style="color: #6b7280; font-size: 0.9em;">$1</em>')
+    .replace(/━━━━━━━━━━━━━━━━━━━━/g, '<hr style="border: none; border-top: 1px dashed #d1d5db; margin: 8px 0;">')
+    .replace(/\n/g, '<br>')
 }
 
 function goBack() {
@@ -326,25 +441,45 @@ function goBack() {
 }
 
 .result-section {
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
   border-radius: 8px;
   padding: 18px;
-}
-
-.dark .result-section {
-  background: #3f1f1f;
-  border-color: #ef4444;
+  transition: all 0.3s ease;
 }
 
 .result-section.correct {
   background: #f0fdf4;
   border-color: #86efac;
 }
-
 .dark .result-section.correct {
   background: #1f3a1f;
   border-color: #4ade80;
+}
+
+.result-section.partial-correct {
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+.dark .result-section.partial-correct {
+  background: #3f2f00;
+  border-color: #fbbf24;
+}
+
+.result-section.warning {
+  background: #fef3c7;
+  border-color: #fca5a5;
+}
+.dark .result-section.warning {
+  background: #3f2a00;
+  border-color: #f59e0b;
+}
+
+.result-section.error {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+.dark .result-section.error {
+  background: #3f1f1f;
+  border-color: #ef4444;
 }
 
 .result-header {
@@ -355,6 +490,14 @@ function goBack() {
 
 .success {
   color: #16a34a;
+}
+
+.partial {
+  color: #d97706;
+}
+
+.warning {
+  color: #f59e0b;
 }
 
 .error {
@@ -378,25 +521,30 @@ function goBack() {
 }
 
 .dark .original-note {
-  border-top: 1px solid #4b5563;
+  border-top-color: #4b5563;
 }
 
 .original-note h5 {
-  margin: 0 0 8px 0;
+  margin: 0 0 10px 0;
   font-size: 13px;
   color: #9ca3af;
 }
 
-.original-note pre {
-  margin: 0;
-  padding: 12px;
-  background: #1e1e1e;
-  color: #d4d4d4;
-  border-radius: 6px;
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-all;
+.note-content {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #374151;
+  white-space: normal;
+  word-break: break-word;
+}
+.dark .note-content { 
+  background: #1f2937; 
+  border-color: #374151; 
+  color: #d1d5db; 
 }
 
 .button-group {
@@ -405,4 +553,20 @@ function goBack() {
   margin-top: 8px;
   flex-wrap: wrap;
 }
+
+.success-actions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 2px dashed #86efac;
+  text-align: center;
+}
+.dark .success-actions { border-top-color: #4ade80; }
+
+.success-tip {
+  font-size: 15px;
+  font-weight: 600;
+  color: #16a34a;
+  margin: 0 0 12px 0;
+}
+.dark .success-tip { color: #4ade80; }
 </style>

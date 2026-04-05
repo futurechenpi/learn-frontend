@@ -106,6 +106,8 @@ import { format } from 'date-fns'
 import MarkdownIt from 'markdown-it'
 import { cozeChat } from '@/api/coze'
 import { usePageContext } from '@/composables/usePageContext'
+import { useAIAssistantStore } from '@/stores/aiAssistant'
+import { storeToRefs } from 'pinia'
 
 // 初始化markdown-it
 const md = new MarkdownIt()
@@ -117,8 +119,9 @@ interface Message {
   timestamp: Date
 }
 
-const isExpanded = ref(false)
-const isMinimized = ref(false)
+const { context: pageContext } = usePageContext()
+const aiStore = useAIAssistantStore()
+const { isExpanded, isMinimized } = storeToRefs(aiStore)
 const inputMessage = ref('')
 const isTyping = ref(false)
 const messages = ref<Message[]>([])
@@ -127,15 +130,13 @@ const suggestions = ref<string[]>([])
 const showSuggestionsEnabled = ref(true)
 let messageId = 0
 
-const { context: pageContext } = usePageContext()
-
 
 const toggleExpanded = () => {
-  isExpanded.value = !isExpanded.value
+  aiStore.toggleExpanded()
 }
 
 const toggleMinimized = () => {
-  isMinimized.value = !isMinimized.value
+  aiStore.toggleMinimized()
 }
 
 function readAISettings(){

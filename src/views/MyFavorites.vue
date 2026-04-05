@@ -1,12 +1,27 @@
 <template>
   <div class="favorites-page">
     <div class="fav-container">
-      <div class="fav-header">
-        <el-button text @click="router.back()"><el-icon><ArrowLeft /></el-icon>返回</el-button>
-        <h2>⭐ 我的收藏</h2>
-        <p v-if="!userStore.isLoggedIn" class="login-tip">
-          请先<router-link to="/login">登录</router-link>后查看收藏
-        </p>
+      <header class="page-header">
+        <div class="header-left">
+          <el-button @click="router.back()" class="back-btn">
+            <el-icon><ArrowLeft /></el-icon>
+            <span>返回</span>
+          </el-button>
+          <div class="title-group">
+            <h2>⭐ 我的收藏</h2>
+            <p class="subtitle">收藏的课程内容都在这里</p>
+          </div>
+        </div>
+        <div v-if="userStore.isLoggedIn && favorites.length > 0" class="header-right">
+          <span class="count-badge">共 {{ favorites.length }} 个收藏</span>
+        </div>
+      </header>
+
+      <div v-if="!userStore.isLoggedIn" class="login-tip-card">
+        <el-icon :size="48" color="#f59e0b"><Lock /></el-icon>
+        <h3>请先登录查看收藏</h3>
+        <p>登录后可以收藏喜欢的课程内容</p>
+        <el-button type="primary" @click="$router.push('/login')">立即登录</el-button>
       </div>
 
       <div v-if="loading" class="loading-wrap">
@@ -40,7 +55,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowRight, ArrowLeft, Lock } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { getFavoriteList } from '@/api/favorite'
 import type { FavoriteItem } from '@/api/favorite'
@@ -105,29 +120,100 @@ onMounted(async () => {
   padding: 32px 24px;
 }
 
-.fav-header h2 {
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+.dark .page-header { background: #1e1e1e; border: 1px solid #333; }
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.back-btn:hover {
+  background: #f0f9ff;
+  color: #3b82f6;
+  transform: translateX(-2px);
+}
+.dark .back-btn:hover { background: #1e3a8a; }
+
+.title-group h2 {
   font-size: 1.5rem;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 8px;
+  margin: 0 0 4px 0;
 }
-.dark .fav-header h2 { color: #f3f4f6; }
+.dark .title-group h2 { color: #f3f4f6; }
 
-.login-tip {
+.subtitle {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.count-badge {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.dark .count-badge { background: rgba(251, 191, 36, 0.15); color: #d97706; }
+
+.login-tip-card {
+  text-align: center;
+  padding: 60px 40px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.dark .login-tip-card { background: #1e1e1e; }
+.login-tip-card h3 {
+  color: #1f2937;
+  margin: 16px 0 8px;
+  font-size: 1.25rem;
+}
+.dark .login-tip-card h3 { color: #f3f4f6; }
+.login-tip-card p {
   color: #6b7280;
+  margin-bottom: 20px;
   font-size: 0.95rem;
 }
-.login-tip a { color: #3b82f6; text-decoration: none; }
-.login-tip a:hover { text-decoration: underline; }
 
 .loading-wrap { padding: 24px 0; }
 
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #9ca3af;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
-.empty-state p { font-size: 1rem; margin-bottom: 16px; }
+.dark .empty-state { background: #1e1e1e; }
+.empty-state p { font-size: 1rem; margin-bottom: 16px; color: #6b7280; }
 
 .fav-grid {
   display: flex;

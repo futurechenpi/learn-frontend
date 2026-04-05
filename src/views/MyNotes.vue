@@ -1,13 +1,24 @@
 <template>
   <div class="notes-page">
     <div class="notes-container">
-      <div class="notes-header">
-        <el-button text @click="router.back()"><el-icon><ArrowLeft /></el-icon>返回</el-button>
-        <h2>📝 我的笔记</h2>
-        <el-select v-model="filterCourse" placeholder="全部课程" clearable style="width: 180px" @click.stop @change="loadNotes">
-          <el-option v-for="c in courseOptions" :key="c.value" :label="c.label" :value="c.value" />
-        </el-select>
-      </div>
+      <header class="page-header">
+        <div class="header-left">
+          <el-button @click="router.back()" class="back-btn">
+            <el-icon><ArrowLeft /></el-icon>
+            <span>返回</span>
+          </el-button>
+          <div class="title-group">
+            <h2>📝 我的笔记</h2>
+            <p class="subtitle">记录学习心得，巩固知识点</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <el-select v-model="filterCourse" placeholder="全部课程" clearable style="width: 180px" @click.stop @change="loadNotes">
+            <el-option v-for="c in courseOptions" :key="c.value" :label="c.label" :value="c.value" />
+          </el-select>
+          <span v-if="notes.length > 0" class="count-badge">共 {{ notes.length }} 条笔记</span>
+        </div>
+      </header>
 
       <div v-if="loading" class="loading-wrap">
         <el-skeleton :rows="4" animated />
@@ -113,20 +124,74 @@ onMounted(loadNotes)
 .dark .notes-page { background: #111827; }
 .notes-container { max-width: 960px; margin: 0 auto; }
 
-.notes-header {
+.page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 20px 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   margin-bottom: 24px;
 }
-.notes-header h2 { margin: 0; font-size: 24px; color: #1f2937; }
-.dark .notes-header h2 { color: #e5e7eb; }
+.dark .page-header { background: #1e1e1e; border: 1px solid #333; }
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.back-btn:hover {
+  background: #f0f9ff;
+  color: #3b82f6;
+  transform: translateX(-2px);
+}
+.dark .back-btn:hover { background: #1e3a8a; }
+
+.title-group h2 { margin: 0; font-size: 24px; color: #1f2937; }
+.dark .title-group h2 { color: #e5e7eb; }
+
+.subtitle {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin: 4px 0 0 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.count-badge {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1e40af;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.dark .count-badge { background: rgba(59,130,246,0.15); color: #60a5fa; }
 
 .loading-wrap, .empty-state {
   text-align: center;
   padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   color: #9ca3af;
 }
+.dark .loading-wrap, .dark .empty-state { background: #1e1e1e; }
 .empty-state p { font-size: 16px; margin-bottom: 16px; }
 
 .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }

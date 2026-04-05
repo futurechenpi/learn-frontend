@@ -1,11 +1,21 @@
 <template>
   <div class="wrong-questions-page">
     <div class="wq-container">
-      <div class="wq-header">
-        <el-button text @click="router.back()"><el-icon><ArrowLeft /></el-icon>返回</el-button>
-        <h2>📌 我的错题本</h2>
-        <span class="wq-count">共 {{ questions.length }} 道错题</span>
-      </div>
+      <header class="page-header">
+        <div class="header-left">
+          <el-button @click="router.back()" class="back-btn">
+            <el-icon><ArrowLeft /></el-icon>
+            <span>返回</span>
+          </el-button>
+          <div class="title-group">
+            <h2>📌 我的错题本</h2>
+            <p class="subtitle">查漏补缺，针对性提升</p>
+          </div>
+        </div>
+        <div v-if="questions.length > 0" class="header-right">
+          <span class="count-badge error">共 {{ questions.length }} 道错题</span>
+        </div>
+      </header>
 
       <div v-if="loading" class="loading-wrap"><el-skeleton :rows="4" animated /></div>
 
@@ -13,6 +23,12 @@
         <p>还没有错题记录</p>
         <p class="sub-hint">AI出题做错后点击"加入错题本"即可收藏</p>
         <el-button type="primary" @click="$router.push('/learn')">去练习</el-button>
+        <div v-if="masteredCount > 0" class="mastered-link">
+          <span class="divider">或</span>
+          <el-button type="success" @click="$router.push('/mastered')">
+            🎉 查看已掌握的题目 ({{ masteredCount }})
+          </el-button>
+        </div>
       </div>
 
       <div v-else class="wq-list">
@@ -76,12 +92,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { RefreshRight, ArrowLeft } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { getWrongQuestions, deleteWrongQuestion } from '@/api/wrongQuestion'
+import { getWrongQuestions, deleteWrongQuestion, getMasteredCount } from '@/api/wrongQuestion'
 import type { WrongQuestionItem } from '@/api/wrongQuestion'
 
 const router = useRouter()
@@ -89,6 +105,8 @@ const userStore = useUserStore()
 const questions = ref<WrongQuestionItem[]>([])
 const loading = ref(false)
 const expandedId = ref<number | null>(null)
+
+const masteredCount = ref(0)
 
 const courseNameMap: Record<string, string> = {
   html: 'HTML 基础', css: 'CSS 样式', javascript: 'JavaScript',
@@ -167,7 +185,21 @@ async function handleDelete(q: WrongQuestionItem) {
   } catch {}
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  loadMasteredHistory()
+})
+
+async function loadMasteredHistory() {
+  if (!userStore.userInfo?.userId) return
+  try {
+    const res: any = await getMasteredCount(userStore.userInfo.userId)
+    masteredCount.value = res.data || 0
+  } catch (e) {
+    console.error('加载已掌握数量失败', e)
+    masteredCount.value = 0
+  }
+}
 </script>
 
 <style scoped>
@@ -175,17 +207,68 @@ onMounted(load)
 .dark .wrong-questions-page { background: #111827; }
 .wq-container { max-width: 960px; margin: 0 auto; }
 
-.wq-header {
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+.dark .page-header { background: #1e1e1e; border: 1px solid #333; }
+
+.header-left {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 24px;
 }
-.wq-header h2 { margin: 0; font-size: 24px; color: #1f2937; }
-.dark .wq-header h2 { color: #e5e7eb; }
-.wq-count { font-size: 14px; color: #9ca3af; }
 
-.loading-wrap, .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; }
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.back-btn:hover {
+  background: #fef2f2;
+  color: #ef4444;
+  transform: translateX(-2px);
+}
+.dark .back-btn:hover { background: #450a0a; }
+
+.title-group h2 { margin: 0; font-size: 24px; color: #1f2937; }
+.dark .title-group h2 { color: #e5e7eb; }
+
+.subtitle {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin: 4px 0 0 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.count-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.count-badge.error {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+}
+.dark .count-badge.error { background: rgba(239,68,68,0.15); color: #f87171; }
+
+.loading-wrap, .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); color: #9ca3af; }
+.dark .loading-wrap, .dark .empty-state { background: #1e1e1e; }
 .empty-state p { font-size: 16px; margin-bottom: 8px; }
 .sub-hint { font-size: 13px; color: #b0b8c4; margin-bottom: 20px !important; }
 
@@ -270,4 +353,13 @@ onMounted(load)
 .dark .note-toggle { color: #d97706; }
 
 .wq-actions { display: flex; gap: 4px; justify-content: flex-end; margin-top: 10px; }
+
+.mastered-link {
+  margin-top: 16px;
+  text-align: center;
+}
+.divider {
+  color: #9ca3af;
+  font-size: 14px;
+}
 </style>

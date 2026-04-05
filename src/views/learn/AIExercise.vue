@@ -86,10 +86,12 @@
               </div>
             </div>
 
-            <div v-if="submitted" class="result-section" :class="{ correct: gradeResult?.score === 100 }">
+            <div v-if="submitted" class="result-section" :class="resultClass">
               <div class="result-header">
-                <span v-if="gradeResult?.score === 100" class="success">✓ 答案正确！</span>
-                <span v-else class="error">✗ 答案错误 (得分：{{ gradeResult?.score || 0 }}分)</span>
+                <span v-if="gradeResult?.score === 100" class="success">🎉 完美！答案全部正确 (100分)</span>
+                <span v-else-if="(gradeResult?.score ?? 0) >= 70" class="partial">👍 做得不错！得分：{{ gradeResult?.score || 0 }}分</span>
+                <span v-else-if="(gradeResult?.score ?? 0) > 0" class="warning">💪 继续努力！得分：{{ gradeResult?.score || 0 }}分</span>
+                <span v-else class="error">❌ 需要再复习一下 (0分)</span>
               </div>
               <div class="feedback">{{ gradeResult?.feedback }}</div>
               <div class="explanation">
@@ -135,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
@@ -175,6 +177,14 @@ const difficultyLabel = () => {
   }
   return map[selectedDifficulty.value] || '中等'
 }
+
+const resultClass = computed(() => {
+  const score = gradeResult.value?.score ?? 0
+  if (score === 100) return 'correct'
+  if (score >= 70) return 'partial-correct'
+  if (score > 0) return 'warning'
+  return 'error'
+})
 
 const parseCozeResponse = (data: any): ExerciseQuestion => {
   return {
@@ -313,13 +323,27 @@ const saveToWrongBook = async () => {
       answer: question.value.answer,
       keyPoints: question.value.key_points
     })
-    const note = `我的答案：${userAnswers.value.join(' | ')}\n得分：${gradeResult.value?.score || 0}分\n反馈：${gradeResult.value?.feedback || ''}`
+
+    let answerDetails = ''
+    userAnswers.value.forEach((ans, index) => {
+      const correctAns = question.value.answer[index] || '无'
+      const isCorrect = ans.trim().toLowerCase() === correctAns.trim().toLowerCase()
+      answerDetails += `\n答案 ${index + 1}：${ans || '(未填写)'} ${isCorrect ? '✓' : '✗'} (正确答案: ${correctAns})`
+    })
+
+    const note = `【作答记录 - ${new Date().toLocaleString()}】\n` +
+                 `得分：${gradeResult.value?.score || 0}分\n` +
+                 `题目：${question.value.question.slice(0, 50)}...\n` +
+                 `━━━━━━━━━━━━━━━━━━━━\n` +
+                 `详细答案对比：${answerDetails}\n` +
+                 `━━━━━━━━━━━━━━━━━━━━\n` +
+                 `AI反馈：\n${gradeResult.value?.feedback || '无'}`
 
     const res: any = await getWrongQuestions(userStore.userInfo.userId)
     const existing = (res?.data || []).find((item: any) => item.wrongCode === wrongCode)
 
     if (existing) {
-      await updateWrongQuestionNote(existing.id, note + '\n\n--- 重复作答 ---\n' + new Date().toLocaleString())
+      await updateWrongQuestionNote(existing.id, existing.note + '\n\n' + note)
       ElMessage.success('已更新错题记录')
     } else {
       await addWrongQuestion({
@@ -464,15 +488,45 @@ const goBack = () => {
 }
 
 .result-section {
-  background: #f0fdf4;
-  border: 1px solid #86efac;
   border-radius: 8px;
   padding: 16px;
+  transition: all 0.3s ease;
 }
 
-.dark .result-section {
+.result-section.correct {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+}
+.dark .result-section.correct {
   background: #1f3a1f;
   border-color: #4ade80;
+}
+
+.result-section.partial-correct {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+.dark .result-section.partial-correct {
+  background: #3f2f00;
+  border-color: #fbbf24;
+}
+
+.result-section.warning {
+  background: #fef3c7;
+  border: 1px solid #fca5a5;
+}
+.dark .result-section.warning {
+  background: #3f2a00;
+  border-color: #f59e0b;
+}
+
+.result-section.error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+}
+.dark .result-section.error {
+  background: #3f1f1f;
+  border-color: #ef4444;
 }
 
 .result-header {
@@ -482,6 +536,14 @@ const goBack = () => {
 
 .success {
   color: #16a34a;
+}
+
+.partial {
+  color: #d97706;
+}
+
+.warning {
+  color: #f59e0b;
 }
 
 .error {
