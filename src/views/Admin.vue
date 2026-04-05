@@ -162,6 +162,10 @@
             <div ref="totalChartRef" class="chart-card total-chart"></div>
             <div ref="pageChartRef" class="chart-card page-chart"></div>
           </div>
+
+          <div class="trend-chart-wrapper">
+            <div ref="trendChartRef" class="chart-card trend-chart"></div>
+          </div>
         </div>
 
         <!-- 角色权限 -->
@@ -591,8 +595,10 @@ const handleUserCommand = (cmd: string) => {
 const goHome = () => router.push('/')
 const totalChartRef = ref<HTMLElement>()
 const pageChartRef = ref<HTMLElement>()
+const trendChartRef = ref<HTMLElement>()
 let totalChart: echarts.ECharts | null = null
 let pageChart: echarts.ECharts | null = null
+let trendChart: echarts.ECharts | null = null
 
 const activeTab = ref<'stats' | 'roles' | 'users' | 'settings' | 'agent' | 'comments' | 'achievements'>('stats')
 
@@ -673,6 +679,7 @@ const refreshAll = async () => {
   const pageRes = await getRangeCountByKey(startDate, endDate, filterKey.value || 'home')
   const pageValue = typeof pageRes.data === 'number' ? pageRes.data : 0
   renderPageChart(label, pageValue)
+  await renderTrendChart(start, end)
 }
 
 const renderTotalChart = (label: string, value: number) => {
@@ -697,6 +704,111 @@ const renderPageChart = (label: string, value: number) => {
     xAxis: { type: 'category', data: [label], axisLine: { lineStyle: { color: '#e5e7eb' } }, axisLabel: { color: '#6b7280' } },
     yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f3f4f6' } }, axisLabel: { color: '#6b7280' } },
     series: [{ type: 'bar', data: [value], barWidth: '50%', itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#10b981' }, { offset: 1, color: '#059669' }]), borderRadius: [8, 8, 0, 0] }, label: { show: true, position: 'top', fontSize: 18, fontWeight: 'bold', color: '#10b981' } }]
+  })
+}
+
+const renderTrendChart = async (start: Date, end: Date) => {
+  if (!trendChart && trendChartRef.value) trendChart = echarts.init(trendChartRef.value)
+
+  const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const dates: string[] = []
+  const totalData: number[] = []
+  const pageData: number[] = []
+
+  for (let i = 0; i < daysDiff; i++) {
+    const d = new Date(start)
+    d.setDate(d.getDate() + i)
+    const dateStr = formatDate(d)
+    dates.push(`${d.getMonth() + 1}/${d.getDate()}`)
+
+    try {
+      const totalRes: any = await getRangeTotalCount(dateStr, dateStr)
+      totalData.push(typeof totalRes.data === 'number' ? totalRes.data : 0)
+    } catch {
+      totalData.push(0)
+    }
+
+    try {
+      const pageRes: any = await getRangeCountByKey(dateStr, dateStr, filterKey.value || 'home')
+      pageData.push(typeof pageRes.data === 'number' ? pageRes.data : 0)
+    } catch {
+      pageData.push(0)
+    }
+  }
+
+  const pageLabel = pageKeyOptions.find(o => o.value === filterKey.value)?.label || filterKey.value
+
+  trendChart?.setOption({
+    title: { text: '访问趋势分析', left: 'center', textStyle: { fontSize: 18, fontWeight: 700, color: '#1e293b' } },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(255,255,255,0.96)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      textStyle: { color: '#334155', fontSize: 13 },
+      extraCssText: 'box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px;',
+      axisPointer: { type: 'cross', crossStyle: { color: '#94a3b8' } }
+    },
+    legend: {
+      data: ['总访问量', `${pageLabel}访问量`],
+      bottom: 0,
+      icon: 'roundRect',
+      itemWidth: 12,
+      itemHeight: 3,
+      textStyle: { color: '#64748b', fontSize: 12 }
+    },
+    grid: { top: 70, right: 30, bottom: 50, left: 55, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      boundaryGap: false,
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      axisTick: { show: false },
+      axisLabel: { color: '#64748b', fontSize: 11 }
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+      axisLabel: { color: '#64748b', fontSize: 11 }
+    },
+    series: [
+      {
+        name: '总访问量',
+        type: 'line',
+        data: totalData,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 3, color: '#6366f1' },
+        itemStyle: { color: '#6366f1', borderColor: '#fff', borderWidth: 2 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(99,102,241,0.25)' },
+            { offset: 1, color: 'rgba(99,102,241,0.02)' }
+          ])
+        },
+        emphasis: { focus: 'series', itemStyle: { shadowBlur: 10, shadowColor: 'rgba(99,102,241,0.4)' } }
+      },
+      {
+        name: `${pageLabel}访问量`,
+        type: 'line',
+        data: pageData,
+        smooth: true,
+        symbol: 'diamond',
+        symbolSize: 7,
+        lineStyle: { width: 2.5, color: '#10b981', type: 'dashed' },
+        itemStyle: { color: '#10b981', borderColor: '#fff', borderWidth: 2 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(16,185,129,0.18)' },
+            { offset: 1, color: 'rgba(16,185,129,0.01)' }
+          ])
+        },
+        emphasis: { focus: 'series', itemStyle: { shadowBlur: 10, shadowColor: 'rgba(16,185,129,0.4)' } }
+      }
+    ],
+    animationDuration: 1200,
+    animationEasing: 'cubicOut'
   })
 }
 
@@ -841,7 +953,7 @@ watch(() => activeTab.value, () => applySettingsToPages())
 onMounted(() => {
   setQuickRange('today'); refreshAll(); applySettingsToPages()
   if (activeTab.value === 'roles' || activeTab.value === 'users') loadUsers()
-  window.addEventListener('resize', () => { totalChart?.resize(); pageChart?.resize() })
+  window.addEventListener('resize', () => { totalChart?.resize(); pageChart?.resize(); trendChart?.resize() })
 })
 
 watch(() => filterKey.value, () => { refreshAll() })
@@ -987,6 +1099,13 @@ watch(() => activeTab.value, (val) => {
 }
 .chart-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
 .dark .chart-card { background: #1e293b; border-color: #334155; }
+
+.trend-chart-wrapper { margin-top: 20px; }
+.trend-chart {
+  min-height: 420px;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+.dark .trend-chart { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
 
 /* ===== 表格 ===== */
 .table-wrapper {
