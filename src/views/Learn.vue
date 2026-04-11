@@ -13,23 +13,8 @@
 
         <div class="header-right">
           <ThemeToggle />
-          
-          <el-dropdown @command="handleCommand">
-            <span class="user-info">
-              <el-avatar :size="32" class="mr-2" :src="avatarUrl || undefined">
-                {{ userStore.userInfo?.userName?.charAt(0) }}
-              </el-avatar>
-              {{ userStore.userInfo?.userName }}
-              <el-icon class="ml-1"><ArrowDown /></el-icon>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                <el-dropdown-item v-if="canSeeAdmin" command="admin">后台管理</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+
+          <UserDropdown :avatar-url="avatarUrl" />
         </div>
       </div>
     </header>
@@ -37,57 +22,59 @@
     <div class="learn-content">
       <!-- 侧边栏 -->
       <aside class="sidebar">
-        <el-menu
-          :default-active="activeMenu"
-          class="sidebar-menu"
-          @select="handleMenuSelect"
-        >
-          <el-menu-item index="html">
-            <el-icon><Document /></el-icon>
-            <span>HTML</span>
-          </el-menu-item>
-          <el-menu-item index="css">
-            <el-icon><Brush /></el-icon>
-            <span>CSS</span>
-          </el-menu-item>
-          <el-menu-item index="javascript">
-            <el-icon><Lightning /></el-icon>
-            <span>JavaScript</span>
-          </el-menu-item>
-          <el-menu-item index="vue3">
-            <el-icon><Star /></el-icon>
-            <span>Vue3</span>
-          </el-menu-item>
-          <el-menu-item index="react">
-            <el-icon><Connection /></el-icon>
-            <span>React</span>
-          </el-menu-item>
-          <el-menu-item index="typescript">
-            <el-icon><Grid /></el-icon>
-            <span>TypeScript</span>
-          </el-menu-item>
-          <el-menu-item index="tailwindcss">
-            <el-icon><MagicStick /></el-icon>
-            <span>TailwindCSS</span>
-          </el-menu-item>
-        </el-menu>
+        <!-- 侧边栏头部 -->
+        <div class="sidebar-header">
+          <div class="sidebar-title">
+            <span class="title-icon">📚</span>
+            <span>课程目录</span>
+          </div>
+        </div>
 
+        <!-- 课程列表 -->
+        <nav class="course-nav">
+          <div
+            v-for="course in courseList"
+            :key="course.key"
+            class="course-item"
+            :class="{ 'active': activeMenu === course.key }"
+            @click="handleMenuSelect(course.key)"
+          >
+            <div class="course-item-left">
+              <span class="course-emoji">{{ course.emoji }}</span>
+              <span class="course-name">{{ course.name }}</span>
+            </div>
+            <div class="course-item-right">
+              <div class="mini-progress" v-if="progressMap[course.key] > 0">
+                <div class="mini-progress-bar" :style="{ width: getCoursePercent(course.key) + '%' }"></div>
+              </div>
+              <span class="course-percent" :class="{ done: getCoursePercent(course.key) >= 100 }">
+                {{ getCoursePercent(course.key) }}%
+              </span>
+            </div>
+          </div>
+        </nav>
+
+        <!-- 底部功能区 -->
         <div class="sidebar-footer">
-          <div class="fav-entry" @click="router.push('/favorites')">
-            <el-icon><Collection /></el-icon>
-            <span>我的收藏</span>
-          </div>
-          <div class="fav-entry" @click="router.push('/notes')">
-            <el-icon><EditPen /></el-icon>
-            <span>我的笔记</span>
-          </div>
-          <div class="fav-entry" @click="router.push('/wrong-questions')">
-            <el-icon><Warning /></el-icon>
-            <span>错题本</span>
-          </div>
-          <div class="fav-entry mastered" @click="router.push('/mastered')">
-            <el-icon><Trophy /></el-icon>
-            <span>已掌握</span>
+          <div class="footer-divider"></div>
+          <div class="footer-label">学习工具</div>
+          <div class="tool-grid">
+            <div class="tool-item" @click="router.push('/favorites')">
+              <span class="tool-icon">⭐</span>
+              <span class="tool-name">我的收藏</span>
+            </div>
+            <div class="tool-item" @click="router.push('/notes')">
+              <span class="tool-icon">📝</span>
+              <span class="tool-name">我的笔记</span>
+            </div>
+            <div class="tool-item" @click="router.push('/wrong-questions')">
+              <span class="tool-icon">📕</span>
+              <span class="tool-name">错题本</span>
+            </div>
+            <div class="tool-item tool-item--mastered" @click="router.push('/mastered')">
+              <span class="tool-icon">🏆</span>
+              <span class="tool-name">已掌握</span>
+            </div>
           </div>
         </div>
       </aside>
@@ -115,22 +102,53 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { ElMessage } from 'element-plus'
-import { ArrowDown, Document, Brush, Lightning, Star, Connection, Grid, MagicStick, House, Collection, EditPen, Warning, Trophy } from '@element-plus/icons-vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AppLogo from '@/components/AppLogo.vue'
 import AIAssistant from '@/components/AIAssistant.vue'
 import FloatingNotePanel from '@/components/FloatingNotePanel.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
-import { checkAdmin, getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
+import UserDropdown from '@/components/UserDropdown.vue'
+import { getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
+import { getUserProgress } from '@/api/progress'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
 const activeMenu = ref('html')
-const canSeeAdmin = ref(false)
 const avatarUrl = ref<string>('')
+const progressMap = ref<Record<string, number>>({})
+
+const courseTotals: Record<string, number> = { html:5, css:4, javascript:5, vue3:6, react:4, typescript:4, tailwindcss:4 }
+
+const courseList = [
+  { key: 'html', name: 'HTML', emoji: '🌐' },
+  { key: 'css', name: 'CSS', emoji: '🎨' },
+  { key: 'javascript', name: 'JavaScript', emoji: '⚡' },
+  { key: 'vue3', name: 'Vue3', emoji: '💚' },
+  { key: 'react', name: 'React', emoji: '⚛️' },
+  { key: 'typescript', name: 'TypeScript', emoji: '🔷' },
+  { key: 'tailwindcss', name: 'TailwindCSS', emoji: '🎯' }
+]
+
+function getCoursePercent(key: string) {
+  const step = progressMap.value[key] || 0
+  const total = courseTotals[key] || 1
+  return Math.min(100, Math.round((step / total) * 100))
+}
+
+async function fetchProgress() {
+  if (!userStore.isLoggedIn || !userStore.userInfo?.userId) {
+    progressMap.value = {}
+    return
+  }
+  try {
+    const res = await getUserProgress(userStore.userInfo.userId)
+    progressMap.value = res?.data || {}
+  } catch {
+    progressMap.value = {}
+  }
+}
 
 const routeToCourseKey: Record<string, string> = {
   html: 'html', css: 'css', javascript: 'javascript',
@@ -163,14 +181,8 @@ onMounted(async () => {
     activeMenu.value = path.split('/learn/')[1] || 'html'
   }
 
-  // 登录后判断是否显示“后台管理”
+  // 登录后拉取头像
   if (userStore.isLoggedIn) {
-    try {
-      const res = await checkAdmin()
-      canSeeAdmin.value = !!res.data?.hasPermission
-    } catch (e) {
-      canSeeAdmin.value = false
-    }
     try {
       const signed = await getAvatarSignedUrl(userStore.userInfo!.userId)
       if (signed?.data) {
@@ -181,31 +193,12 @@ onMounted(async () => {
       }
     } catch {}
   }
+  await fetchProgress()
 })
 
 const handleMenuSelect = (index: string) => {
   activeMenu.value = index
   router.push(`/learn/${index}`)
-}
-
-const goHome = () => {
-  router.push('/')
-}
-
-const handleCommand = (command: string) => {
-  switch (command) {
-    case 'profile':
-      router.push('/profile')
-      break
-    case 'admin':
-      router.push('/admin')
-      break
-    case 'logout':
-      userStore.logout()
-      ElMessage.success('已退出登录')
-      router.push('/')
-      break
-  }
 }
 
 // 登录状态变化时刷新头像
@@ -234,23 +227,23 @@ watch(
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  background: #f0f2f5;
 }
 
 .dark .learn-page {
-  background: #1a1a1a;
+  background: #111;
 }
 
 .learn-header {
   background: white;
   border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   z-index: 1000;
 }
 
 .dark .learn-header {
-  background: #2d2d2d;
-  border-bottom: 1px solid #404040;
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
 }
 
 .header-content {
@@ -275,46 +268,10 @@ watch(
   padding: 0 24px;
 }
 
-.back-home-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: all 0.3s;
-}
-
-.back-home-btn:hover {
-  background: #f0f9ff;
-  color: #3b82f6;
-}
-
-.dark .back-home-btn:hover {
-  background: #1e3a8a;
-  color: #60a5fa;
-}
-
 .header-right {
   display: flex;
   align-items: center;
   gap: 16px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: background-color 0.3s;
-}
-
-.user-info:hover {
-  background: #f5f5f5;
-}
-
-.dark .user-info:hover {
-  background: #404040;
 }
 
 .learn-content {
@@ -323,78 +280,248 @@ watch(
   overflow: hidden;
 }
 
+/* ========== 侧边栏 ========== */
 .sidebar {
-  width: 240px;
+  width: 260px;
   background: white;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid #e8ecf1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .dark .sidebar {
-  background: #2d2d2d;
-  border-right: 1px solid #404040;
+  background: #161616;
+  border-right: 1px solid #2a2a2a;
 }
 
-.sidebar-menu {
-  border: none;
-  flex: 1;
-  overflow-y: auto;
+/* 侧边栏头部 */
+.sidebar-header {
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.main-content {
-  flex: 1;
-  overflow-y: auto;
-  background: white;
+.dark .sidebar-header {
+  border-bottom-color: #252525;
 }
 
-.dark .main-content {
-  background: #1a1a1a;
-}
-
-
-:deep(.el-menu-item) {
-  height: 50px;
-  line-height: 50px;
-}
-
-:deep(.el-menu-item.is-active) {
-  background-color: #f0f9ff;
-  color: #3b82f6;
-}
-
-.dark :deep(.el-menu-item.is-active) {
-  background-color: #1e3a8a;
-  color: #60a5fa;
-}
-
-.sidebar-footer {
-  padding: 12px 0;
-  border-top: 1px solid #eee;
-}
-.dark .sidebar-footer { border-top-color: #404040; }
-
-.fav-entry {
+.sidebar-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 20px;
-  cursor: pointer;
-  color: #6b7280;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-  margin-top: auto;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+  letter-spacing: 0.3px;
 }
-.fav-entry:hover { color: #f59e0b; background: #fffbeb; }
-.dark .fav-entry:hover { background: rgba(245,158,11,0.08); }
 
-.fav-entry.mastered:hover {
-  color: #16a34a;
-  background: #f0fdf4;
+.dark .sidebar-title {
+  color: #e8e8e8;
 }
-.dark .fav-entry.mastered:hover {
-  background: rgba(22,163,74,0.1);
+
+.title-icon {
+  font-size: 18px;
+}
+
+/* 课程导航 */
+.course-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.course-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  margin-bottom: 3px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.course-item:hover {
+  background: #f5f7fa;
+}
+
+.dark .course-item:hover {
+  background: #222;
+}
+
+.course-item.active {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.12);
+}
+
+.dark .course-item.active {
+  background: linear-gradient(135deg, rgba(79,70,229,0.18) 0%, rgba(67,56,202,0.12) 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+}
+
+.course-item-left {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.course-emoji {
+  font-size: 19px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 26px;
+  text-align: center;
+}
+
+.course-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.dark .course-name {
+  color: #d1d5db;
+}
+
+.course-item.active .course-name {
+  color: #4338ca;
+  font-weight: 600;
+}
+
+.dark .course-item.active .course-name {
+  color: #a5b4fc;
+}
+
+.course-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mini-progress {
+  width: 40px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.dark .mini-progress {
+  background: #333;
+}
+
+.mini-progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: width 0.4s ease;
+}
+
+.course-percent {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  min-width: 30px;
+  text-align: right;
+}
+
+.course-percent.done {
+  color: #22c55e;
+}
+
+/* 底部功能区 */
+.sidebar-footer {
+  padding: 14px 16px 18px;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.dark .sidebar-footer {
+  border-top-color: #252525;
+}
+
+.footer-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+  margin-bottom: 12px;
+}
+
+.dark .footer-divider {
+  background: linear-gradient(90deg, transparent, #333, transparent);
+}
+
+.footer-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  padding-left: 2px;
+}
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.tool-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12.5px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.tool-item:hover {
+  background: #fefce8;
+  color: #ca8a04;
+}
+
+.dark .tool-item:hover {
+  background: rgba(234,179,8,0.08);
+  color: #facc15;
+}
+
+.tool-item--mastered:hover {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.dark .tool-item--mastered:hover {
+  background: rgba(34,197,94,0.08);
+  color: #4ade80;
+}
+
+.tool-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.tool-name {
+  white-space: nowrap;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #f0f2f5;
+}
+
+.dark .main-content {
+  background: #111;
 }
 </style>
 

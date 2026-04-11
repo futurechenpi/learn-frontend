@@ -21,4 +21,12 @@ export function saveUserProgress(payload: UserProgressRecord) {
   return request.post<void>('/progress', payload)
 }
 
+export function checkIn(userId: number) {
+  return request.post<{ success: boolean; message: string; consecutiveDays: number }>('/progress/checkin', { userId })
+}
+
+export function getCheckInStatus(userId: number) {
+  return request.get<{ hasCheckedInToday: boolean; consecutiveDays: number; totalCheckIns: number }>(`/progress/checkin/status/${userId}`)
+}
+
 

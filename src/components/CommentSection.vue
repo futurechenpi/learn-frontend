@@ -1,68 +1,94 @@
 <template>
   <div class="comment-section">
+    <!-- 头部 -->
     <div class="comment-header">
-      <h4>💬 课程评论</h4>
-      <span class="comment-count">{{ comments.length }} 条评论</span>
-    </div>
-
-    <div v-if="userStore.isLoggedIn" class="comment-input-area">
-      <el-input
-        v-model="newComment"
-        type="textarea"
-        :rows="2"
-        :maxlength="500"
-        show-word-limit
-        placeholder="写下你对这门课程的看法..."
-        resize="none"
-      />
-      <div class="comment-input-actions">
-        <el-button
-          type="primary"
-          size="small"
-          :loading="submitting"
-          :disabled="!newComment.trim()"
-          @click="handleSubmit"
-        >
-          发表评论
-        </el-button>
+      <div class="header-left">
+        <span class="header-icon">💬</span>
+        <h4>课程评论</h4>
+        <span class="comment-badge">{{ comments.length }}</span>
       </div>
     </div>
-    <div v-else class="comment-login-tip">
-      <p>登录后即可参与评论~</p>
-      <el-button size="small" @click="$router.push('/login')">去登录</el-button>
+
+    <!-- 评论输入区 -->
+    <div v-if="userStore.isLoggedIn" class="comment-input-card">
+      <div class="input-row">
+        <div class="input-avatar">
+          <img v-if="avatarUrl" :src="avatarUrl" alt="" />
+          <div v-else class="avatar-fallback">{{ (userStore.userInfo?.userName || '?')[0] }}</div>
+        </div>
+        <div class="input-body">
+          <el-input
+            v-model="newComment"
+            type="textarea"
+            :rows="2"
+            :maxlength="500"
+            show-word-limit
+            placeholder="分享你的学习心得..."
+            resize="none"
+            class="comment-textarea"
+          />
+          <div class="input-actions">
+            <el-button
+              type="primary"
+              round
+              size="small"
+              :loading="submitting"
+              :disabled="!newComment.trim()"
+              @click="handleSubmit"
+            >
+              <span class="btn-icon">✨</span>
+              发表评论
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-else class="login-tip-card">
+      <span class="tip-icon">🔒</span>
+      <div class="tip-text">
+        <p>登录后即可参与评论互动</p>
+      </div>
+      <el-button type="primary" size="small" round @click="$router.push('/login')">去登录</el-button>
     </div>
 
-    <div v-if="comments.length === 0 && !loading" class="comment-empty">
+    <!-- 空状态 -->
+    <div v-if="comments.length === 0 && !loading" class="empty-state">
+      <span class="empty-icon">📭</span>
       <p>暂无评论，快来发表第一条吧！</p>
     </div>
 
+    <!-- 评论列表 -->
     <div v-loading="loading" class="comment-list">
-      <div v-for="comment in comments" :key="comment.id" class="comment-item">
-        <div class="comment-avatar">
-          <img
-            v-if="avatarUrlMap[comment.userId]"
-            :src="avatarUrlMap[comment.userId]"
-            alt=""
-          />
-          <div v-else class="avatar-placeholder">
-            {{ (comment.userName || '?')[0].toUpperCase() }}
+      <transition-group name="comment-fade" tag="div" class="list-inner">
+        <div v-for="(comment, index) in comments" :key="comment.id" class="comment-card" :style="{ animationDelay: index * 0.05 + 's' }">
+          <div class="card-avatar">
+            <img
+              v-if="avatarUrlMap[comment.userId]"
+              :src="avatarUrlMap[comment.userId]"
+              alt=""
+            />
+            <div v-else class="avatar-placeholder">
+              {{ (comment.userName || '?')[0].toUpperCase() }}
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-top">
+              <span class="card-name">{{ comment.userName }}</span>
+              <span class="card-time">{{ formatTime(comment.createdAt) }}</span>
+            </div>
+            <p class="card-content">{{ comment.content }}</p>
+            <div class="card-actions">
+              <span
+                v-if="canDelete(comment)"
+                class="action-delete"
+                @click="handleDelete(comment)"
+              >
+                🗑️ 删除
+              </span>
+            </div>
           </div>
         </div>
-        <div class="comment-body">
-          <div class="comment-meta">
-            <span class="comment-username">{{ comment.userName }}</span>
-            <span class="comment-time">{{ formatTime(comment.createdAt) }}</span>
-          </div>
-          <p class="comment-content">{{ comment.content }}</p>
-          <div
-            v-if="canDelete(comment)"
-            class="comment-delete"
-            @click="handleDelete(comment)"
-          >
-            删除
-          </div>
-        </div>
-      </div>
+      </transition-group>
     </div>
   </div>
 </template>
@@ -85,6 +111,7 @@ const newComment = ref('')
 const submitting = ref(false)
 const loading = ref(false)
 const avatarUrlMap = ref<Record<number, string>>({})
+const avatarUrl = ref<string>('')
 
 function formatTime(time: string) {
   const d = new Date(time)
@@ -117,6 +144,12 @@ async function loadComments() {
           if (signed?.data) avatarUrlMap.value[c.userId] = signed.data
         } catch {}
       }
+    }
+    if (userStore.isLoggedIn && userStore.userInfo?.userId) {
+      try {
+        const signed: any = await getAvatarSignedUrl(userStore.userInfo.userId)
+        if (signed?.data) avatarUrl.value = signed.data
+      } catch {}
     }
   } catch {}
   loading.value = false
@@ -155,132 +188,358 @@ defineExpose({ refresh: loadComments })
 
 <style scoped>
 .comment-section {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
+  margin-top: 32px;
 }
-.dark .comment-section { border-top-color: #444; }
 
+/* 头部 */
 .comment-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-}
-.comment-header h4 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-.dark .comment-header h4 { color: #e5e7eb; }
-.comment-count {
-  font-size: 0.85rem;
-  color: #9ca3af;
+  margin-bottom: 20px;
 }
 
-.comment-input-area {
-  margin-bottom: 16px;
-}
-.comment-input-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
-
-.comment-login-tip {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
 }
-.dark .comment-login-tip { background: #1f2937; }
-.comment-login-tip p {
-  color: #6b7280;
-  font-size: 0.9rem;
+
+.header-icon {
+  font-size: 20px;
+}
+
+.comment-header h4 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f2937;
   margin: 0;
 }
 
-.comment-empty {
-  text-align: center;
-  padding: 24px;
-  color: #9ca3af;
-  font-size: 0.9rem;
+.dark .comment-header h4 { color: #f1f5f9; }
+
+.comment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.comment-list {
+/* 输入卡片 */
+.comment-input-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.comment-input-card:focus-within {
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.dark .comment-input-card {
+  background: #1a1a2e;
+  border-color: #2d2d44;
+}
+
+.input-row {
   display: flex;
-  flex-direction: column;
   gap: 14px;
+  align-items: flex-start;
 }
 
-.comment-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-.comment-item:hover { background: #f9fafb; }
-.dark .comment-item:hover { background: #1f2937; }
-
-.comment-avatar {
+.input-avatar {
   flex-shrink: 0;
 }
-.comment-avatar img,
-.avatar-placeholder {
-  width: 36px;
-  height: 36px;
+
+.input-avatar img,
+.avatar-fallback {
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   object-fit: cover;
 }
-.avatar-placeholder {
+
+.avatar-fallback {
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
-.comment-body {
+.input-body {
   flex: 1;
   min-width: 0;
 }
-.comment-meta {
+
+.comment-textarea :deep(.el-textarea__inner) {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #374151;
+  transition: all 0.2s;
+  resize: none !important;
+}
+
+.comment-textarea :deep(.el-textarea__inner):focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+}
+
+.comment-textarea :deep(.el-textarea__inner)::placeholder {
+  color: #b0b5c3;
+}
+
+.dark .comment-textarea :deep(.el-textarea__inner) {
+  background: #12122a;
+  border-color: #333355;
+  color: #d1d5db;
+}
+
+.dark .comment-textarea :deep(.el-textarea__inner)::placeholder {
+  color: #555;
+}
+
+.comment-textarea :deep(.el-input__count) {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.input-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.input-actions .el-button {
+  padding: 8px 20px;
+  font-weight: 600;
+  font-size: 13px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+}
+
+.input-actions .el-button:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-icon {
+  margin-right: 4px;
+}
+
+/* 登录提示卡片 */
+.login-tip-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #fefce8, #fffbeb);
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.dark .login-tip-card {
+  background: rgba(234,179,8,0.06);
+  border-color: rgba(234,179,8,0.2);
+}
+
+.tip-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.tip-text p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #92400e;
+  flex: 1;
+}
+
+.dark .tip-text p {
+  color: #fcd34d;
+}
+
+.login-tip-card .el-button {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-icon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* 评论列表 */
+.comment-list {
+  min-height: 40px;
+}
+
+.list-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 评论卡片 */
+.comment-card {
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
+  background: white;
+  border: 1px solid #f0f0f0;
+  border-radius: 14px;
+  transition: all 0.25s ease;
+  animation: slideIn 0.35s ease both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.comment-card:hover {
+  border-color: #e0e0e0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.dark .comment-card {
+  background: #16162b;
+  border-color: #252540;
+}
+
+.dark .comment-card:hover {
+  border-color: #33335a;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.card-avatar {
+  flex-shrink: 0;
+}
+
+.card-avatar img,
+.avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-top {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
-.comment-username {
-  font-weight: 500;
-  font-size: 0.9rem;
-  color: #374151;
+
+.card-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #1f2937;
 }
-.dark .comment-username { color: #d1d5db; }
-.comment-time {
-  font-size: 0.8rem;
+
+.dark .card-name { color: #e2e8f0; }
+
+.card-time {
+  font-size: 11.5px;
   color: #9ca3af;
 }
-.comment-content {
+
+.card-content {
   margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.7;
   color: #4b5563;
   word-break: break-word;
 }
-.dark .comment-content { color: #d1d5db; }
 
-.comment-delete {
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: #9ca3af;
-  margin-top: 6px;
-  display: inline-block;
+.dark .card-content { color: #c4c9d4; }
+
+.card-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
 }
-.comment-delete:hover { color: #ef4444; }
+
+.action-delete {
+  cursor: pointer;
+  font-size: 12px;
+  color: #b0b5c3;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.action-delete:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.dark .action-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* 过渡动画 */
+.comment-fade-enter-active,
+.comment-fade-leave-active {
+  transition: all 0.3s ease;
+}
+.comment-fade-enter-from,
+.comment-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
+}
 </style>

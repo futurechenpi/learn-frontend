@@ -14,22 +14,7 @@
           <!-- 用户下拉，与学习中心一致 -->
           <template v-if="userStore.isLoggedIn">
             <el-button type="primary" @click="goToLearn">开始学习</el-button>
-            <el-dropdown @command="handleCommand">
-              <span class="user-info">
-                <el-avatar :size="32" class="mr-2" :src="avatarUrl || undefined">
-                  {{ userStore.userInfo?.userName?.charAt(0) }}
-                </el-avatar>
-                {{ userStore.userInfo?.userName }}
-                <el-icon class="ml-1"><ArrowDown /></el-icon>
-              </span>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                  <el-dropdown-item v-if="canSeeAdmin" command="admin">后台管理</el-dropdown-item>
-                  <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <UserDropdown :avatar-url="avatarUrl" />
           </template>
 
           <div v-else class="flex items-center space-x-2">
@@ -45,27 +30,78 @@
       <div class="container mx-auto px-4 py-16">
         <!-- 欢迎区域 -->
         <section class="welcome-section text-center py-12">
-          <h2 class="text-4xl font-bold text-gray-800 dark:text-white mb-4">
-            前端学习网站
-          </h2>
-          <p class="text-lg text-gray-600 dark:text-white/80 mb-8 max-w-2xl mx-auto">
-            系统化学习前端技术，从基础到进阶
-          </p>
+          <!-- 未登录状态 -->
+          <template v-if="!userStore.isLoggedIn">
+            <h2 class="text-4xl font-bold text-gray-800 dark:text-white mb-4">
+              前端学习网站
+            </h2>
+            <p class="text-lg text-gray-600 dark:text-white/80 mb-8 max-w-2xl mx-auto">
+              系统化学习前端技术，从基础到进阶
+            </p>
+            <div class="hero-actions">
+              <el-button type="primary" size="large" @click="goToRegister">立即开始</el-button>
+              <el-button size="large" @click="goToLogin">登录</el-button>
+            </div>
+          </template>
 
-          <div v-if="!userStore.isLoggedIn" class="hero-actions">
-            <el-button type="primary" size="large" @click="goToRegister">
-              立即开始
-            </el-button>
-            <el-button size="large" @click="goToLogin">
-              登录
-            </el-button>
-          </div>
+          <!-- 已登录状态：个性化欢迎 + 打卡 -->
+          <template v-else>
+            <!-- 欢迎卡片 -->
+            <div class="welcome-card" :class="{ 'checked-in': hasCheckedIn }">
+              <div class="welcome-avatar">
+                <el-avatar :size="72" :src="avatarUrl || undefined" class="welcome-avatar-img">
+                  {{ userStore.userInfo?.userName?.charAt(0) }}
+                </el-avatar>
+                <div v-if="hasCheckedIn" class="check-badge">✓</div>
+              </div>
+              
+              <div class="welcome-text">
+                <h2 class="welcome-greeting">{{ greetingText }}，{{ userStore.userInfo?.userName }}！</h2>
+                <p class="welcome-subtitle">{{ timeGreeting }}</p>
+                
+                <div class="welcome-stats">
+                  <div class="stat-item">
+                    <span class="stat-number">{{ totalProgress }}</span>
+                    <span class="stat-label">总进度</span>
+                  </div>
+                  <div class="stat-divider"></div>
+                  <div class="stat-item">
+                    <span class="stat-number">{{ completedCourses }}</span>
+                    <span class="stat-label">已完成课程</span>
+                  </div>
+                  <div class="stat-divider"></div>
+                  <div class="stat-item">
+                    <span class="stat-number">{{ consecutiveDays }}</span>
+                    <span class="stat-label">连续打卡</span>
+                  </div>
+                </div>
+              </div>
 
-          <div v-else class="hero-actions">
-            <el-button type="primary" size="large" @click="goToLearn">
-              继续学习
-            </el-button>
-          </div>
+              <!-- 打卡按钮 -->
+              <div class="checkin-area">
+                <button 
+                  class="checkin-btn" 
+                  :class="{ 'checked': hasCheckedIn, 'loading': checkInLoading }"
+                  :disabled="hasCheckedIn || checkInLoading"
+                  @click="handleCheckIn"
+                >
+                  <span v-if="hasCheckedIn" class="btn-icon">🎉</span>
+                  <span v-else class="btn-icon">👋</span>
+                  <span class="btn-text">
+                    {{ hasCheckedIn ? `今日已打卡 (${formatTime(checkInTime)})` : '立即打卡' }}
+                  </span>
+                </button>
+
+                <div v-if="hasCheckedIn" class="checkin-tip">
+                  {{ getCheckInMessage() }}
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-actions">
+              <el-button type="primary" size="large" @click="goToLearn">继续学习</el-button>
+            </div>
+          </template>
         </section>
 
         <!-- 学习路径 -->
@@ -136,18 +172,66 @@
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { User, Key, Reading, ArrowDown } from '@element-plus/icons-vue'
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AppLogo from '@/components/AppLogo.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
-import { checkAdmin, getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
-import { getUserProgress } from '@/api/progress'
+import UserDropdown from '@/components/UserDropdown.vue'
+import { getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
+import { getUserProgress, checkIn, getCheckInStatus } from '@/api/progress'
 
 const router = useRouter()
 const userStore = useUserStore()
-const canSeeAdmin = ref(false)
 const avatarUrl = ref<string>('')
+
+// 打卡相关
+const hasCheckedIn = ref(false)
+const checkInLoading = ref(false)
+const checkInTime = ref<string>('')
+const consecutiveDays = ref(0)
+
+// 问候语
+const greetingText = computed(() => {
+  const hour = new Date().getHours()
+  if (hour < 6) return '夜深了'
+  if (hour < 9) return '早上好'
+  if (hour < 12) return '上午好'
+  if (hour < 14) return '中午好'
+  if (hour < 18) return '下午好'
+  if (hour < 22) return '晚上好'
+  return '夜深了'
+})
+
+const timeGreeting = computed(() => {
+  const hour = new Date().getHours()
+  if (hour < 9) return '新的一天，从学习开始吧 🌅'
+  if (hour < 12) return '保持专注，今天也要加油 💪'
+  if (hour < 14) return '午休过后，继续前进 ☀️'
+  if (hour < 18) return '下午时段，效率满满 ⚡'
+  if (hour < 22) return '晚上学习，沉淀知识 🌙'
+  return '注意休息，别太晚哦 🌛'
+})
+
+// 统计数据
+const totalProgress = computed(() => {
+  const totals: Record<string, number> = { html:5, css:4, javascript:5, vue3:6, react:4, typescript:4, tailwindcss:4 }
+  let totalStep = 0
+  let totalMax = 0
+  for (const [key, max] of Object.entries(totals)) {
+    totalStep += progressMap.value[key] || 0
+    totalMax += max
+  }
+  return totalMax > 0 ? Math.min(100, Math.round((totalStep / totalMax) * 100)) : 0
+})
+
+const completedCourses = computed(() => {
+  const totals: Record<string, number> = { html:5, css:4, javascript:5, vue3:6, react:4, typescript:4, tailwindcss:4 }
+  let count = 0
+  for (const [key, total] of Object.entries(totals)) {
+    if ((progressMap.value[key] || 0) >= total) count++
+  }
+  return count
+})
 
 // 滚动状态
 const isScrolled = ref(false)
@@ -160,16 +244,8 @@ const handleScroll = () => {
 // 生命周期钩子
 onMounted(async () => {
   window.addEventListener('scroll', handleScroll)
-  // 判断是否显示“后台管理”
+  // 登录后拉取头像
   if (userStore.isLoggedIn) {
-    try {
-      const res = await checkAdmin()
-      console.log(res)
-      canSeeAdmin.value = !!res?.data?.hasPermission
-    } catch {
-      canSeeAdmin.value = false
-    }
-    // 拉取头部头像（优先预签名，其次直接值）
     try {
       const signed = await getAvatarSignedUrl(userStore.userInfo!.userId)
       if (signed?.data) {
@@ -180,6 +256,7 @@ onMounted(async () => {
       }
     } catch {}
     await fetchProgress()
+    await fetchCheckInStatus()
   }
 })
 
@@ -267,6 +344,55 @@ async function fetchProgress(){
   }catch{ progressMap.value = {} }
 }
 
+// 打卡相关
+async function fetchCheckInStatus(){
+  if (!userStore.userInfo?.userId) return
+  try{
+    const res = await getCheckInStatus(userStore.userInfo.userId)
+    if (res?.data){
+      hasCheckedIn.value = res.data.hasCheckedInToday
+      consecutiveDays.value = res.data.consecutiveDays
+      if (hasCheckedIn.value) {
+        checkInTime.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      }
+    }
+  } catch {}
+}
+
+async function handleCheckIn(){
+  if (!userStore.userInfo?.userId) return
+  checkInLoading.value = true
+  try{
+    const res = await checkIn(userStore.userInfo.userId)
+    if (res?.data?.success){
+      hasCheckedIn.value = true
+      checkInTime.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      consecutiveDays.value = res.data.consecutiveDays
+      ElMessage.success(res.data.message)
+    } else {
+      ElMessage.warning(res?.data?.message || '操作失败')
+    }
+  } catch {
+    ElMessage.error('打卡失败，请稍后重试')
+  } finally {
+    checkInLoading.value = false
+  }
+}
+
+function formatTime(time: string){
+  return time || ''
+}
+
+function getCheckInMessage(){
+  const days = consecutiveDays.value
+  if (days === 1) return '连续打卡1天，继续保持！🔥'
+  if (days === 3) return '连续打卡3天，你很棒！💪'
+  if (days === 7) return '连续打卡一周！太厉害了 🎉'
+  if (days >= 30) return `连续打卡${days}天！你是真正的学习者 👑`
+  if (days > 7) return `连续打卡${days}天，坚持就是胜利 ⭐`
+  return `连续打卡${days}天，加油！`
+}
+
 const courseOrder = ['HTML','CSS','JavaScript','Vue3','React','TypeScript','TailwindCSS']
 const courseKeyMap: Record<string, string> = { HTML:'html', CSS:'css', JavaScript:'javascript', Vue3:'vue3', React:'react', TypeScript:'typescript', TailwindCSS:'tailwindcss' }
 
@@ -295,26 +421,6 @@ const goToLearn = () => {
     return
   }
   router.push('/learn')
-}
-
-const logout = () => {
-  userStore.logout()
-  ElMessage.success('已退出登录')
-}
-
-const handleCommand = (command: string) => {
-  switch (command) {
-    case 'profile':
-      router.push('/profile')
-      break
-    case 'admin':
-      router.push('/admin')
-      break
-    case 'logout':
-      logout()
-      router.push('/')
-      break
-  }
 }
 
 const getDifficultyClass = (difficulty: string) => {
@@ -378,32 +484,6 @@ const goToCourse = (courseName: string, index: number) => {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: background-color 0.3s;
-  outline: none;
-}
-
-.user-info:hover {
-  background: #f5f5f5;
-}
-
-.dark .user-info:hover {
-  background: #404040;
-}
-
-.user-info :deep(.el-avatar) {
-  border: none !important;
-}
-
-.user-info :deep(.el-avatar:hover) {
-  border: none !important;
 }
 
 .dark .header {
@@ -766,6 +846,201 @@ const goToCourse = (courseName: string, index: number) => {
 
 .dark .feature-description {
   color: rgba(255, 255, 255, 0.8);
+}
+
+/* 欢迎卡片 */
+.welcome-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 28px;
+  background: white;
+  border-radius: 20px;
+  padding: 32px 40px;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15);
+  max-width: 720px;
+  margin: 0 auto;
+  transition: all 0.3s ease;
+}
+
+.dark .welcome-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.welcome-card.checked-in {
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15);
+}
+
+.welcome-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.welcome-avatar-img {
+  border: 3px solid #667eea !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+}
+
+.check-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 24px;
+  height: 24px;
+  background: #22c55e;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  border: 2px solid white;
+}
+
+.welcome-text {
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+}
+
+.welcome-greeting {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.dark .welcome-greeting {
+  color: #f9fafb;
+}
+
+.welcome-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.dark .welcome-subtitle {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.welcome-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-number {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #667eea;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.dark .stat-label {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.stat-divider {
+  width: 1px;
+  height: 36px;
+  background: #e5e7eb;
+}
+
+.dark .stat-divider {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* 打卡区域 */
+.checkin-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.checkin-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.35);
+  white-space: nowrap;
+}
+
+.checkin-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.45);
+}
+
+.checkin-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.checkin-btn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.checkin-btn.checked {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
+}
+
+.checkin-btn.loading {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.btn-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.btn-text {
+  line-height: 1;
+}
+
+.checkin-tip {
+  font-size: 0.78rem;
+  color: #22c55e;
+  font-weight: 500;
+  text-align: center;
+  animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.welcome-section .hero-actions {
+  margin-top: 32px;
 }
 
 </style>

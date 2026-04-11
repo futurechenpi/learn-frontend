@@ -19,31 +19,7 @@
 
       <div class="header-right">
         <ThemeToggle />
-        <el-dropdown trigger="click" @command="handleUserCommand">
-          <div class="user-profile">
-            <el-avatar :size="34" :src="avatarUrl || undefined" class="user-avatar">
-              {{ userStore.userInfo?.userName?.charAt(0) || 'A' }}
-            </el-avatar>
-            <div class="user-info" v-show="!isCollapsed">
-              <span class="user-name">{{ userStore.userInfo?.userName || '管理员' }}</span>
-              <span class="user-role">{{ roleLabel(userStore.userInfo?.role) }}</span>
-            </div>
-            <el-icon><ArrowDown /></el-icon>
-          </div>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="profile">
-                <el-icon><User /></el-icon>个人资料
-              </el-dropdown-item>
-              <el-dropdown-item command="home">
-                <el-icon><House /></el-icon>返回前台
-              </el-dropdown-item>
-              <el-dropdown-item divided command="logout">
-                <el-icon><SwitchButton /></el-icon>退出登录
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <UserDropdown :avatar-url="avatarUrl" :show-home="true" :hide-admin="true" :dark-trigger="true" />
       </div>
     </header>
 
@@ -509,10 +485,11 @@ import {
   DataAnalysis, UserFilled, Lock, ChatDotRound, Trophy,
   Setting, MagicStick, Refresh, Plus, Edit, Delete,
   Check, RefreshLeft, Brush, Grid, Monitor, Document,
-  User, House, SwitchButton, ArrowDown, Expand, Fold
+  User, Expand, Fold
 } from '@element-plus/icons-vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AdminAgent from '@/components/AdminAgent.vue'
+import UserDropdown from '@/components/UserDropdown.vue'
 import { getRangeTotalCount, getRangeCountByKey, pageUsers, updateUserRole, addUser, editUser, deleteUser, type UserInfo, getAvatarUrl, getAvatarSignedUrl } from '@/api/user'
 import { adminGetAllComments, adminDeleteComment } from '@/api/comment'
 import { getAllAchievements } from '@/api/achievement'
@@ -583,16 +560,6 @@ onMounted(() => {
   fetchAdminAvatar()
 })
 
-const handleUserCommand = (cmd: string) => {
-  if (cmd === 'profile') router.push('/profile')
-  else if (cmd === 'home') router.push('/')
-  else if (cmd === 'logout') {
-    userStore.logout()
-    router.push('/login')
-  }
-}
-
-const goHome = () => router.push('/')
 const totalChartRef = ref<HTMLElement>()
 const pageChartRef = ref<HTMLElement>()
 const trendChartRef = ref<HTMLElement>()
@@ -1010,16 +977,6 @@ watch(() => activeTab.value, (val) => {
 :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) { color: #e2e8f0 !important; font-weight: 500; }
 
 .header-right { display: flex; align-items: center; gap: 16px; }
-
-.user-profile {
-  display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 12px;
-  border-radius: 10px; transition: all 0.2s; border: 1px solid transparent;
-}
-.user-profile:hover { background: rgba(255,255,255,0.06); border-color: rgba(148,163,184,0.2); }
-.user-avatar { background: linear-gradient(135deg, #667eea, #764ba2) !important; color: #fff !important; font-weight: 600; }
-.user-info { display: flex; flex-direction: column; line-height: 1.3; }
-.user-name { font-size: 13px; font-weight: 600; color: #e2e8f0; }
-.user-role { font-size: 11px; color: #94a3b8; }
 
 /* ===== 主体布局 ===== */
 .admin-body { flex: 1; display: flex; overflow: hidden; }
