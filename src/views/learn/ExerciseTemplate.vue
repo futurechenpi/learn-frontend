@@ -16,12 +16,19 @@
     <main class="main">
       <div class="workspace">
         <div class="preview-panel">
-          <div class="panel-header">
-            <span class="panel-title">🎯 目标效果</span>
-            <span class="panel-hint">试着在右边写出能实现此效果的代码</span>
-          </div>
-          <div class="preview-iframe-wrap">
-            <iframe :srcdoc="goalSrcdoc" class="goal-iframe" />
+          <div class="preview-row">
+            <div class="preview-half">
+              <div class="panel-header">
+                <span class="panel-title">🎯 目标效果</span>
+              </div>
+              <iframe :srcdoc="goalSrcdoc" class="goal-iframe" />
+            </div>
+            <div class="preview-half">
+              <div class="panel-header">
+                <span class="panel-title">📝 你的效果</span>
+              </div>
+              <iframe :srcdoc="userSrcdoc" class="user-iframe" />
+            </div>
           </div>
         </div>
 
@@ -35,7 +42,6 @@
             <div class="tools">
               <el-button size="small" :type="answerShown[activeTab] ? 'warning' : 'default'" @click="toggleAnswer">{{ answerShown[activeTab] ? '🙈 隐藏答案' : '💡 显示答案' }}</el-button>
               <el-button size="small" type="danger" @click="clearCode">清空代码</el-button>
-              <el-switch v-model="showLivePreview" active-text="实时预览" inactive-text="" size="small" style="margin-left: 8px;" />
             </div>
           </div>
           <div class="editor-body" ref="editorBodyRef">
@@ -43,15 +49,6 @@
             <div v-show="activeTab === 'css'" class="editor-host" ref="cssHost"></div>
             <div v-show="activeTab === 'js'" class="editor-host" ref="jsHost"></div>
           </div>
-
-          <transition name="slide">
-            <div v-if="showLivePreview" class="live-preview">
-              <div class="panel-header mini">
-                <span class="panel-title">📝 你的效果</span>
-              </div>
-              <iframe :srcdoc="userSrcdoc" class="user-iframe" />
-            </div>
-          </transition>
         </div>
       </div>
 
@@ -74,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, reactive, onMounted, watch, nextTick, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import AIAssistant from '@/components/AIAssistant.vue'
@@ -105,7 +102,6 @@ const jsHost = ref<HTMLElement>()
 const editorBodyRef = ref<HTMLElement>()
 let editors: Record<string, any> = {}
 let monacoInstance: any = null
-const showLivePreview = ref(true)
 const showHints = ref(false)
 const answerShown = reactive<Record<ExerciseTab, boolean>>({ html: false, css: false, js: false })
 
@@ -169,6 +165,9 @@ const userSrcdoc = computed(() => {
 const updatePageContext = () => {
   const lessonData = props.config.lessons[step.value] || props.config.lessons[1]
   const title = props.config.titles[step.value] || subtitle.value
+  const goalHtml = lessonData?.html || ''
+  const goalCss = lessonData?.css || ''
+  const goalJs = lessonData?.js || ''
   setContext({
     pageName: props.config.pageContextName,
     routeName: props.config.routeName,
@@ -176,11 +175,23 @@ const updatePageContext = () => {
     lessonStep: step.value,
     lessonTotalSteps: maxStep.value,
     contentSummary: `练习目标：${title}\n提示：${(lessonData?.hints || []).join('；')}`,
-    codeExample: lessonData?.js || lessonData?.html,
+    codeExample: [
+      '【目标 HTML】\n' + goalHtml,
+      '【目标 CSS】\n' + goalCss,
+      '【目标 JS】\n' + goalJs,
+      '【你当前写的 HTML】\n' + html.value,
+      '【你当前写的 CSS】\n' + css.value,
+      '【你当前写的 JS】\n' + js.value,
+    ].join('\n\n'),
   })
 }
 
 watch(step, () => { loadLesson(); updatePageContext() })
+watchEffect(() => {
+  if (html.value || css.value || js.value) {
+    updatePageContext()
+  }
+})
 
 function loadLesson() {
   html.value = ''
@@ -319,17 +330,18 @@ function toggleHints() { showHints.value = !showHints.value }
 .page-header .left { display: flex; align-items: baseline; gap: 12px; }
 .page-header h1 { margin: 0; font-size: 18px; color: var(--el-text-color-primary); }
 .page-header .desc { color: var(--el-text-color-secondary); font-size: 13px; }
-.main { flex: 1; display: grid; grid-template-columns: 1fr 300px; overflow: hidden; min-height: 0; }
-.workspace { display: grid; grid-template-columns: minmax(280px, 35%) 1fr; overflow: hidden; border-right: 1px solid var(--el-border-color); min-width: 0; }
+.main { flex: 1; display: grid; grid-template-columns: 1fr 320px; overflow: hidden; min-height: 0; }
+.workspace { display: grid; grid-template-columns: minmax(280px, 40%) 1fr; overflow: hidden; border-right: 1px solid var(--el-border-color); min-width: 0; }
 
-.preview-panel { display: flex; flex-direction: column; border-right: 1px solid var(--el-border-color); background: #fafbfc; }
+.preview-panel { display: flex; flex-direction: column; background: #fafbfc; overflow: hidden; border-right: 1px solid var(--el-border-color); }
 .dark .preview-panel { background: #111827; }
-.panel-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--el-border-color); flex-shrink: 0; }
-.panel-header.mini { padding: 6px 12px; }
+.preview-row { flex: 1; display: grid; grid-template-rows: 1fr 1fr; overflow: hidden; gap: 1px; background: var(--el-border-color); }
+.preview-half { display: flex; flex-direction: column; background: white; overflow: hidden; min-height: 0; }
+.dark .preview-half { background: #1a1a2e; }
+.panel-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--el-border-color); flex-shrink: 0; }
 .panel-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); white-space: nowrap; }
-.panel-hint { font-size: 11px; color: var(--el-text-color-placeholder); margin-left: auto; }
 .preview-iframe-wrap { flex: 1; overflow: hidden; position: relative; min-height: 0; }
-.goal-iframe, .user-iframe { width: 100%; height: 100%; border: none; background: white; }
+.goal-iframe, .user-iframe { width: 100%; height: 100%; border: none; background: white; flex: 1; }
 .dark .goal-iframe, .dark .user-iframe { background: #1a1a2e; }
 
 .editor-panel { display: flex; flex-direction: column; overflow: hidden; min-width: 0; min-height: 0; }
@@ -346,13 +358,6 @@ function toggleHints() { showHints.value = !showHints.value }
   right: 0;
   bottom: 0;
 }
-
-.live-preview { border-top: 1px solid var(--el-border-color); flex-shrink: 0; max-height: 45%; min-height: 120px; display: flex; flex-direction: column; overflow: hidden; }
-.live-preview .user-iframe { border-top: none; }
-
-.slide-enter-active, .slide-leave-active { transition: all 0.3s ease; overflow: hidden; }
-.slide-enter-from, .slide-leave-to { max-height: 0; opacity: 0; padding: 0; }
-.slide-enter-to, .slide-leave-from { max-height: 500px; opacity: 1; }
 
 .sidebar { display: flex; flex-direction: column; overflow: hidden; }
 .hints { padding: 12px; border-bottom: 1px solid var(--el-border-color); flex-shrink: 0; }

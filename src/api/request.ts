@@ -54,7 +54,7 @@ function handleTokenExpired(message?: string) {
   if (currentPath !== '/login') {
     router.push('/login')
   }
-  setTimeout(() => { isLoggingOut = false }, 1000)
+  setTimeout(() => { isLoggingOut = false }, 3000)
 }
 
 // 响应拦截器
@@ -73,15 +73,15 @@ service.interceptors.response.use(
     return data
   },
   (error) => {
-    console.error('响应错误:', error)
-
     if (error.response) {
       const { status, data } = error.response
 
+      if (status === 401) {
+        handleTokenExpired(data?.message)
+        return Promise.reject(new Error('Unauthorized'))
+      }
+
       switch (status) {
-        case 401:
-          handleTokenExpired(data?.message)
-          break
         case 403:
           ElMessage.error('没有权限访问')
           break
@@ -96,7 +96,7 @@ service.interceptors.response.use(
       }
     } else if (error.code === 'ECONNABORTED') {
       ElMessage.error('请求超时')
-    } else {
+    } else if (error.message !== 'Unauthorized') {
       ElMessage.error('网络错误')
     }
 

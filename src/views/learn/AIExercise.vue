@@ -137,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
@@ -145,10 +145,12 @@ import CodeHighlighter from '@/components/CodeHighlighter.vue'
 import { generateQuestion as generateQuestionAPI, gradeAnswer, type ExerciseQuestion } from '@/api/exercise'
 import { addWrongQuestion, getWrongQuestions, updateWrongQuestionNote } from '@/api/wrongQuestion'
 import { useUserStore } from '@/stores/user'
+import { usePageContext } from '@/composables/usePageContext'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const { setContext } = usePageContext()
 
 const selectedCourse = ref(route.params.course as string || 'JavaScript')
 const selectedDifficulty = ref('medium')
@@ -159,6 +161,29 @@ const loading = ref(false)
 const grading = ref(false)
 const gradeResult = ref<{ score: number; feedback: string } | null>(null)
 const savingWrong = ref(false)
+
+const courseNameMap: Record<string, string> = {
+  html: 'HTML', css: 'CSS', javascript: 'JavaScript',
+  vue3: 'Vue3', react: 'React', typescript: 'TypeScript', tailwindcss: 'TailwindCSS'
+}
+
+const updatePageContext = () => {
+  const course = selectedCourse.value
+  setContext({
+    pageName: `${courseNameMap[course] || course} AI练习`,
+    routeName: 'ai-exercise',
+    lessonTitle: question.value?.question?.split('\n')[0] || `${courseNameMap[course] || course} 智能出题`,
+    contentSummary: question.value
+      ? `题目：${question.value.question}\n关键点：${(question.value.key_points || []).join('；')}`
+      : `正在练习${courseNameMap[course] || course}课程`,
+    codeExample: question.value?.skeleton_code || question.value?.full_code,
+  })
+}
+
+watch(selectedCourse, () => updatePageContext())
+watch(question, () => updatePageContext())
+
+onMounted(() => updatePageContext())
 
 const difficultyTagType = () => {
   const map: Record<string, string> = {
