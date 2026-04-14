@@ -1,0 +1,1 @@
+import{P as r}from"./index-iRVf_xUN.js";function t(s){return r.get(`/progress/${s}`)}function n(s){return r.post("/progress",s)}function o(s){return r.post("/progress/checkin",{userId:s})}function c(s){return r.get(`/progress/checkin/status/${s}`)}export{c as a,o as c,t as g,n as s};

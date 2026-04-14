@@ -98,7 +98,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { getCommentList, addComment, deleteComment } from '@/api/comment'
-import { getAvatarSignedUrl } from '@/api/user'
+import { getAvatarSignedUrl, getAvatarProxyUrl } from '@/api/user'
 import type { CommentItem } from '@/api/comment'
 
 const props = defineProps<{
@@ -140,15 +140,15 @@ async function loadComments() {
     for (const c of comments.value) {
       if (c.userId && !avatarUrlMap.value[c.userId]) {
         try {
-          const signed: any = await getAvatarSignedUrl(c.userId)
-          if (signed?.data) avatarUrlMap.value[c.userId] = signed.data
+          const r: any = await getAvatarUrl(c.userId)
+          if (r?.data) avatarUrlMap.value[c.userId] = getAvatarProxyUrl(c.userId)
         } catch {}
       }
     }
     if (userStore.isLoggedIn && userStore.userInfo?.userId) {
       try {
-        const signed: any = await getAvatarSignedUrl(userStore.userInfo.userId)
-        if (signed?.data) avatarUrl.value = signed.data
+        const r: any = await getAvatarUrl(userStore.userInfo.userId)
+        if (r?.data) avatarUrl.value = getAvatarProxyUrl(userStore.userInfo.userId)
       } catch {}
     }
   } catch {}

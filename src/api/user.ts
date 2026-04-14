@@ -2,7 +2,7 @@
  * @Author: futurechenpi 2625765150@qq.com
  * @Date: 2025-09-30 09:52:09
  * @LastEditors: futurechenpi 2625765150@qq.com
- * @LastEditTime: 2025-10-07 03:32:36
+ * @LastEditTime: 2026-04-15 01:04:36
  * @FilePath: \learn-frontend\src\api\user.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -161,5 +161,10 @@ export const getAvatarUrl = (userId: number) => {
 // 获取头像访问预签名 URL（私有桶推荐）
 export const getAvatarSignedUrl = (userId: number) => {
   return request.get<string>(`/user/${userId}/avatar-url`)
+}
+
+// 获取头像代理 URL（后端代理，绕过签名问题）
+export const getAvatarProxyUrl = (userId: number) => {
+  return `/api/user/${userId}/avatar-proxy`
 }
 

@@ -286,7 +286,7 @@ import {
   type UpdateEmailParams,
   uploadAvatar,
   getAvatarUrl,
-  getAvatarSignedUrl
+  getAvatarProxyUrl
 } from '@/api/user'
 import LearningDashboard from '@/components/LearningDashboard.vue'
 import AchievementPanel from '@/components/AchievementPanel.vue'
@@ -516,17 +516,10 @@ const onUploadAvatar = async (options: any) => {
 const fetchAvatar = async () => {
   if (!userStore.userInfo?.userId) return
   try {
-    // 1) 试图获取预签名 URL（私有桶推荐）
-    const signed = await getAvatarSignedUrl(userStore.userInfo.userId)
-    console.log(signed)
-    if (signed?.data) {
-      avatarUrl.value = signed.data as unknown as string
-      return
-    }
-    // 2) 回退到获取 key：原样赋值（后端自行保证是可用 URL 或 key）
-    const res = await getAvatarUrl(userStore.userInfo.userId)
+    const userId = userStore.userInfo.userId
+    const res = await getAvatarUrl(userId)
     if (res && res.data) {
-      avatarUrl.value = res.data as unknown as string
+      avatarUrl.value = getAvatarProxyUrl(userId)
     }
   } catch (e) {
     // 静默失败

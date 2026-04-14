@@ -177,7 +177,7 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 import AppLogo from '@/components/AppLogo.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
 import UserDropdown from '@/components/UserDropdown.vue'
-import { getAvatarSignedUrl, getAvatarUrl } from '@/api/user'
+import { getAvatarUrl, getAvatarProxyUrl } from '@/api/user'
 import { getUserProgress, checkIn, getCheckInStatus } from '@/api/progress'
 
 const router = useRouter()
@@ -247,12 +247,10 @@ onMounted(async () => {
   // 登录后拉取头像
   if (userStore.isLoggedIn) {
     try {
-      const signed = await getAvatarSignedUrl(userStore.userInfo!.userId)
-      if (signed?.data) {
-        avatarUrl.value = signed.data as unknown as string
-      } else {
-        const r = await getAvatarUrl(userStore.userInfo!.userId)
-        if (r?.data) avatarUrl.value = r.data as unknown as string
+      const userId = userStore.userInfo!.userId
+      const r = await getAvatarUrl(userId)
+      if (r?.data) {
+        avatarUrl.value = getAvatarProxyUrl(userId)
       }
     } catch {}
     await fetchProgress()
@@ -270,13 +268,11 @@ watch(
   async (logged) => {
     if (logged && userStore.userInfo?.userId) {
       try {
-        const signed = await getAvatarSignedUrl(userStore.userInfo.userId)
-        if (signed?.data) {
-          avatarUrl.value = signed.data as unknown as string
-          return
+        const userId = userStore.userInfo.userId
+        const r = await getAvatarUrl(userId)
+        if (r?.data) {
+          avatarUrl.value = getAvatarProxyUrl(userId)
         }
-        const r = await getAvatarUrl(userStore.userInfo.userId)
-        if (r?.data) avatarUrl.value = r.data as unknown as string
       } catch {}
       await fetchProgress()
     } else {

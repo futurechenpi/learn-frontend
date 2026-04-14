@@ -490,7 +490,7 @@ import {
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AdminAgent from '@/components/AdminAgent.vue'
 import UserDropdown from '@/components/UserDropdown.vue'
-import { getRangeTotalCount, getRangeCountByKey, pageUsers, updateUserRole, addUser, editUser, deleteUser, type UserInfo, getAvatarUrl, getAvatarSignedUrl } from '@/api/user'
+import { getRangeTotalCount, getRangeCountByKey, pageUsers, updateUserRole, addUser, editUser, deleteUser, type UserInfo, getAvatarUrl, getAvatarProxyUrl } from '@/api/user'
 import { adminGetAllComments, adminDeleteComment } from '@/api/comment'
 import { getAllAchievements } from '@/api/achievement'
 import { useUserStore } from '@/stores/user'
@@ -510,14 +510,10 @@ const userAvatarMap = ref<Map<number, string>>(new Map())
 const fetchAdminAvatar = async () => {
   if (!userStore.userInfo?.userId) return
   try {
-    const signed: any = await getAvatarSignedUrl(userStore.userInfo.userId)
-    if (signed?.data) {
-      avatarUrl.value = signed.data
-      return
-    }
-    const res: any = await getAvatarUrl(userStore.userInfo.userId)
+    const userId = userStore.userInfo.userId
+    const res: any = await getAvatarUrl(userId)
     if (res?.data) {
-      avatarUrl.value = res.data
+      avatarUrl.value = getAvatarProxyUrl(userId)
     }
   } catch (e) {
     console.warn('获取管理员头像失败', e)
@@ -531,14 +527,9 @@ const fetchUserAvatars = async (userList: UserInfo[]) => {
     userList.map(async (user) => {
       if (!user.userId) return
       try {
-        const signed: any = await getAvatarSignedUrl(user.userId)
-        if (signed?.data) {
-          newMap.set(user.userId, signed.data)
-          return
-        }
         const res: any = await getAvatarUrl(user.userId)
         if (res?.data) {
-          newMap.set(user.userId, res.data)
+          newMap.set(user.userId, getAvatarProxyUrl(user.userId))
         }
       } catch (e) {
         // 静默失败，显示默认首字母头像
