@@ -1,0 +1,1 @@
+import{P as e}from"./index-BFtICLyj.js";function i(){return e.get("/favorite/list")}function a(t,r){return e.post("/favorite/toggle",{courseKey:t,courseName:r})}function c(t){return e.get(`/favorite/check/${t}`)}export{c,i as g,a as t};

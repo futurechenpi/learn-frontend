@@ -98,7 +98,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { getCommentList, addComment, deleteComment } from '@/api/comment'
-import { getAvatarSignedUrl, getAvatarProxyUrl } from '@/api/user'
+import { getAvatarUrl, getAvatarSignedUrl, getAvatarProxyUrl } from '@/api/user'
 import type { CommentItem } from '@/api/comment'
 
 const props = defineProps<{

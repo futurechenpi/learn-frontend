@@ -1,0 +1,1 @@
+import{P as n}from"./index-BFtICLyj.js";function r(t,e){return n.get("/note/list",{params:{userId:t,...e?{courseKey:e}:{}}})}function a(t){return n.post("/note/add",t)}function u(t,e){return n.put(`/note/${t}`,e)}function s(t){return n.delete(`/note/${t}`)}export{a,s as d,r as g,u};
