@@ -1,1 +1,0 @@
-import{P as e}from"./index-BFtICLyj.js";function o(t){return e.get(`/comment/list/${t}`)}function a(t,n){return e.post("/comment/add",{courseKey:t,content:n})}function i(t){return e.delete(`/comment/${t}`)}function r(t){return e.get("/admin/comment/list",{params:t?{courseKey:t}:{}})}function d(t){return e.delete(`/admin/comment/${t}`)}export{a,d as b,r as c,i as d,o as g};

@@ -1,0 +1,1 @@
+import{P as t}from"./index-ko4TOxCY.js";function c(e){return t.get("/achievement/my",{params:{userId:e}})}function a(e){return t.post("/achievement/check",null,{params:{userId:e}})}function i(){return t.get("/achievement/list")}export{i as a,a as c,c as g};

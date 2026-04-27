@@ -72,6 +72,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { login } from '@/api/user'
+import { resetTokenExpired } from '@/api/request'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 
@@ -107,6 +108,7 @@ const handleLogin = async () => {
     const response = await login(loginForm)
     
     if (response.data.success) {
+      resetTokenExpired()
       userStore.login(response.data.token, response.data.userInfo)
       ElMessage.success('登录成功')
       router.push('/')

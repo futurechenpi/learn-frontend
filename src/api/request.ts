@@ -4,14 +4,14 @@
  * @LastEditors: futurechenpi 2625765150@qq.com
  * @LastEditTime: 2025-10-07 03:38:33
  * @FilePath: \learn-frontend\src\api\request.ts
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import router from '@/router'
 
-// 创建axios实例
+let isTokenExpired = false
+
 const service: AxiosInstance = axios.create({
   baseURL: '/api',
   timeout: 10000,
@@ -20,20 +20,33 @@ const service: AxiosInstance = axios.create({
   }
 })
 
-// 请求拦截器
+function handleTokenExpired(message?: string) {
+  if (isTokenExpired) return
+  isTokenExpired = true
+  const userStore = useUserStore()
+  userStore.logout()
+  ElMessage.error(message || '登录已过期，请重新登录')
+  const currentPath = router.currentRoute.value.path
+  if (currentPath !== '/login') {
+    router.push('/login')
+  }
+}
+
 service.interceptors.request.use(
   (config: any) => {
+    if (isTokenExpired) {
+      return Promise.reject(new Error('TOKEN_EXPIRED'))
+    }
+
     const userStore = useUserStore()
     const token = userStore.token
-    
-    // 排除无需携带token的接口：登录、注册、以及外部SDK(Coza不走此axios)
     const url: string = config.url || ''
     const isAuthFree = url.includes('/user/login') || url.includes('/user/register')
-    
+
     if (!isAuthFree && token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    
+
     return config
   },
   (error) => {
@@ -42,22 +55,6 @@ service.interceptors.request.use(
   }
 )
 
-let isLoggingOut = false
-
-function handleTokenExpired(message?: string) {
-  if (isLoggingOut) return
-  isLoggingOut = true
-  const userStore = useUserStore()
-  userStore.logout()
-  ElMessage.error(message || '登录已过期，请重新登录')
-  const currentPath = router.currentRoute.value.path
-  if (currentPath !== '/login') {
-    router.push('/login')
-  }
-  setTimeout(() => { isLoggingOut = false }, 3000)
-}
-
-// 响应拦截器
 service.interceptors.response.use(
   (response: AxiosResponse) => {
     const { data } = response
@@ -73,6 +70,10 @@ service.interceptors.response.use(
     return data
   },
   (error) => {
+    if (error.message === 'TOKEN_EXPIRED') {
+      return Promise.reject(error)
+    }
+
     if (error.response) {
       const { status, data } = error.response
 
@@ -104,5 +105,8 @@ service.interceptors.response.use(
   }
 )
 
-export default service
+export function resetTokenExpired() {
+  isTokenExpired = false
+}
 
+export default service

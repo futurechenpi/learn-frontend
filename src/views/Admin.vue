@@ -848,7 +848,14 @@ const courseKeyOptions = [
 ]
 const courseLabelMap: Record<string, string> = { html: 'HTML 基础', css: 'CSS 样式', javascript: 'JavaScript', vue3: 'Vue3 框架', react: 'React 框架', typescript: 'TypeScript', tailwindcss: 'TailwindCSS' }
 function getCourseLabel(key: string) { return courseLabelMap[key] || key }
-function formatCommentTime(time: string | null) { if (!time) return '-'; const d = new Date(time); const pad = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}` }
+function formatCommentTime(time: string | null) {
+  if (!time) return '-'
+  const d = new Date(time)
+  // 数据库存储的是UTC时间，需要转换为北京时间(UTC+8)
+  const localTime = new Date(d.getTime() + 8 * 60 * 60 * 1000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${localTime.getFullYear()}-${pad(localTime.getMonth()+1)}-${pad(localTime.getDate())} ${pad(localTime.getHours())}:${pad(localTime.getMinutes())}`
+}
 
 async function loadComments() {
   commentLoading.value = true

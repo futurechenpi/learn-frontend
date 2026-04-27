@@ -116,7 +116,9 @@ const avatarUrl = ref<string>('')
 function formatTime(time: string) {
   const d = new Date(time)
   const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
+  // 数据库存储的是UTC时间，需要转换为北京时间(UTC+8)
+  const localTime = new Date(d.getTime() + 8 * 60 * 60 * 1000)
+  const diffMs = now.getTime() - localTime.getTime()
   const diffMin = Math.floor(diffMs / 60000)
   if (diffMin < 1) return '刚刚'
   if (diffMin < 60) return `${diffMin}分钟前`
@@ -124,7 +126,7 @@ function formatTime(time: string) {
   if (diffHr < 24) return `${diffHr}小时前`
   const diffDay = Math.floor(diffHr / 24)
   if (diffDay < 30) return `${diffDay}天前`
-  return d.toLocaleDateString('zh-CN')
+  return localTime.toLocaleDateString('zh-CN')
 }
 
 function canDelete(comment: CommentItem): boolean {
